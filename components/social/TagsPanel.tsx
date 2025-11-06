@@ -1,9 +1,9 @@
-
 import React from 'react';
 import type { Tag, Friend } from '../../types';
 import TagCard from './TagCard';
 
 interface TagsPanelProps {
+  isLoading: boolean;
   tags: Tag[];
   friends: Friend[];
   onViewProfile: (friend: Friend) => void;
@@ -12,7 +12,19 @@ interface TagsPanelProps {
   onDeleteTag: (tagId: string) => void;
 }
 
-const TagsPanel: React.FC<TagsPanelProps> = ({ tags, friends, onViewProfile, onCreateTag, onEditTag, onDeleteTag }) => {
+const SkeletonTagCard: React.FC = () => (
+    <div className="bg-white rounded-xl shadow-md p-3 flex items-center animate-pulse">
+        <div className="h-6 w-6 bg-gray-200 rounded mr-3"></div>
+        <div className="flex-grow space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+        </div>
+        <div className="h-5 w-10 bg-gray-200 rounded-full"></div>
+    </div>
+);
+
+
+const TagsPanel: React.FC<TagsPanelProps> = ({ isLoading, tags, friends, onViewProfile, onCreateTag, onEditTag, onDeleteTag }) => {
   return (
     <div className="p-4 space-y-4">
       {/* Create Tag Button */}
@@ -27,7 +39,11 @@ const TagsPanel: React.FC<TagsPanelProps> = ({ tags, friends, onViewProfile, onC
       </button>
 
       {/* Tags List */}
-      {tags.length > 0 ? (
+      {isLoading ? (
+        <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonTagCard key={i} />)}
+        </div>
+      ) : tags.length > 0 ? (
         <div className="space-y-3">
           {tags.map(tag => (
             <TagCard 

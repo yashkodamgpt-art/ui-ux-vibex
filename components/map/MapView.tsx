@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import type { Session, User, Friend } from '../../types';
 import type { CampusZoneName } from '../filters/FilterChipBar';
@@ -84,12 +83,12 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
 
   useImperativeHandle(ref, () => ({
     recenter: () => { if (mapInstanceRef.current && userLocation) { mapInstanceRef.current.flyTo(userLocation, LOCATION_FOUND_ZOOM); } },
-    flyToSession: (session: Session) => { if (mapInstanceRef.current) { mapInstanceRef.current.flyTo([session.lat, session.lng], 18); } }
+    flyToSession: (session: Session) => { if (mapInstanceRef.current && session?.lat && session?.lng) { mapInstanceRef.current.flyTo([session.lat, session.lng], 18); } }
   }));
 
   useEffect(() => { const timerId = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(timerId); }, []);
   useEffect(() => { if (!mapRef.current || typeof L === 'undefined') { console.error("MapView: Leaflet library (L) is not defined or map container is not available."); setError("Map could not be loaded."); return; } const map = L.map(mapRef.current, { center: IITGN_COORDS, zoom: INITIAL_ZOOM, zoomControl: false, preferCanvas: true }); mapInstanceRef.current = map; L.control.zoom({ position: 'topright' }).addTo(map); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19, keepBuffer: 2, }).addTo(map); L.control.scale({ position: 'bottomright' }).addTo(map); userMarkerRef.current = L.marker(IITGN_COORDS).addTo(map); eventsLayerRef.current = L.layerGroup().addTo(map); setTimeout(() => map.invalidateSize(), 100); return () => { map.remove(); }; }, []);
-  useEffect(() => { if (!mapInstanceRef.current) return; setLoadingLocation(true); setError(null); const locationTimeout = setTimeout(() => { setError('Could not get your location in time. Showing default location.'); setLoadingLocation(false); }, 5000); navigator.geolocation.getCurrentPosition( (position) => { clearTimeout(locationTimeout); const userCoords: [number, number] = [position.coords.latitude, position.coords.longitude]; onSetUserLocation(userCoords); if (mapInstanceRef.current) { mapInstanceRef.current.flyTo(userCoords, LOCATION_FOUND_ZOOM); if (userMarkerRef.current) userMarkerRef.current.setLatLng(userCoords); } setDisplayCoords({ lat: userCoords[0], lng: userCoords[1] }); setError(null); setLoadingLocation(false); }, (geoError: GeolocationPositionError) => { clearTimeout(locationTimeout); let errorMessage = 'Unable to retrieve your location.'; if (geoError.code === geoError.PERMISSION_DENIED) { errorMessage = 'Location access denied. Please enable it in your browser settings.'; } setError(errorMessage); setLoadingLocation(false); }, { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 } ); return () => clearTimeout(locationTimeout); }, [onSetUserLocation]);
+  useEffect(() => { if (!mapInstanceRef.current) return; setLoadingLocation(true); setError(null); const locationTimeout = setTimeout(() => { setError('Could not get your location in time. Using default campus location.'); setLoadingLocation(false); }, 5000); navigator.geolocation.getCurrentPosition( (position) => { clearTimeout(locationTimeout); const userCoords: [number, number] = [position.coords.latitude, position.coords.longitude]; onSetUserLocation(userCoords); if (mapInstanceRef.current) { mapInstanceRef.current.flyTo(userCoords, LOCATION_FOUND_ZOOM); if (userMarkerRef.current) userMarkerRef.current.setLatLng(userCoords); } setDisplayCoords({ lat: userCoords[0], lng: userCoords[1] }); setError(null); setLoadingLocation(false); }, (geoError: GeolocationPositionError) => { clearTimeout(locationTimeout); let errorMessage = 'Using default location. Enable GPS for accuracy.'; if (geoError.code === geoError.PERMISSION_DENIED) { errorMessage = 'Location access denied. Enable it for full functionality.'; } setError(errorMessage); setLoadingLocation(false); }, { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 } ); return () => clearTimeout(locationTimeout); }, [onSetUserLocation]);
   useEffect(() => { if (isVisible && mapInstanceRef.current) { setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); } }, [isVisible]);
   useEffect(() => { if (mapInstanceRef.current && activeFilter && campusZones[activeFilter]) { const zone = campusZones[activeFilter]; mapInstanceRef.current.flyTo(zone.coords, zone.zoom); } }, [activeFilter, campusZones]);
   useEffect(() => { const map = mapInstanceRef.current; if (!map) return; const handleClick = (e: any) => { if (!isCreateMode || !userLocation) return; const clickLatLng = e.latlng; const userLatLng = L.latLng(userLocation[0], userLocation[1]); if (userLatLng.distanceTo(clickLatLng) <= CREATE_RADIUS_METERS) { onMapClick({ lat: clickLatLng.lat, lng: clickLatLng.lng }); } else { alert("Please select a location within the 5km radius."); } }; map.on('click', handleClick); return () => { map.off('click', handleClick); }; }, [isCreateMode, onMapClick, userLocation]);
@@ -151,7 +150,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         const eventMarker = L.marker([event.lat, event.lng], { icon: eventIcon }).addTo(layer);
         
         const popupNode = document.createElement('div'); popupNode.className = "p-1 font-sans";
-        let avatarsHtml = event.participants.map(pId => generateAvatar(pId, friends, user, event)).join('');
+        let avatarsHtml = event.participants?.map(pId => generateAvatar(pId, friends, user, event)).join('') ?? '';
 
         let timeStatusHtml = '';
         if (isActive) { if (event.participants.includes(user.id)) { const minutesToEnd = (endTime - nowTime) / 60000; timeStatusHtml = `<p class="text-sm font-bold text-green-600">${formatRemainingTime(minutesToEnd)}</p>`; } else { timeStatusHtml = `<p class="text-xs text-gray-500">Ends at: ${new Date(endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>`; } } 
@@ -169,7 +168,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         if (event.sessionType === 'borrow') {
             const urgencyColors = { Low: 'text-green-600', Medium: 'text-yellow-600', High: 'text-red-600' };
             const urgencyColor = event.urgency ? urgencyColors[event.urgency] : 'text-gray-500';
-            const autoCloseTime = startTime + 30 * 60 * 1000;
+            const autoCloseTime = new Date(event.event_time).getTime() + 30 * 60 * 1000;
             const minutesToAutoClose = (autoCloseTime - nowTime) / 60000;
             const returnTimeDate = event.returnTime ? new Date(event.returnTime) : null;
 
@@ -191,7 +190,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
             const closeButton = document.createElement('button'); closeButton.className = "text-xs bg-red-100 text-red-800 font-semibold px-2 py-1 rounded hover:bg-red-200 transition-colors ml-auto"; closeButton.innerText = "Close"; controlsContainer.appendChild(closeButton); L.DomEvent.on(closeButton, 'click', () => { onCloseEvent(event.id); map.closePopup(); });
         }
 
-        if (event.participants.includes(user.id)) {
+        if (event.participants?.includes(user.id)) {
             const viewChatButton = document.createElement('button');
             viewChatButton.className = "w-full text-center font-bold bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors";
             viewChatButton.innerText = "View Chat"; controlsContainer.appendChild(viewChatButton);
@@ -199,14 +198,16 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         } else {
             const isGenderMismatch = isGenderFiltered && user.profile.gender !== event.creatorGender;
             const cannotJoin = !!activeVibe || isGenderMismatch;
+            let disabledTooltip = '';
+            if (isGenderMismatch) disabledTooltip = "This is a same-gender only session.";
+            else if (activeVibe) disabledTooltip = "You are already in another session.";
 
             const createJoinButton = (text: string, role: 'seeking' | 'offering' | 'participant' | 'giver', primary = true) => {
                 const button = document.createElement('button');
                 button.className = `w-full text-center font-bold px-3 py-2 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed ${primary ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`;
                 button.disabled = cannotJoin;
-                if (isGenderMismatch) { button.innerText = "Same Gender Only"; } 
-                else if (activeVibe) { button.innerText = "In another Vibe"; } 
-                else { button.innerText = text; }
+                button.title = cannotJoin ? disabledTooltip : '';
+                button.innerText = text;
                 if (!cannotJoin) { L.DomEvent.on(button, 'click', () => { onJoinVibe(event.id, role); map.closePopup(); }); }
                 return button;
             };
@@ -230,7 +231,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
   return (
     <div className="relative w-full h-full bg-green-200 z-0">
       <div ref={mapRef} className="w-full h-full" role="application" aria-label="Interactive map" />
-      {error && ( <p className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-11/12 max-w-md text-center text-sm text-yellow-800 bg-yellow-100 p-3 rounded-lg shadow-md" role="alert">{error}</p>)}
+      {error && ( <p className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000] w-11/12 max-w-md text-center text-sm text-yellow-800 bg-yellow-100 p-3 rounded-lg shadow-md" role="alert">{error}</p>)}
       <div className="absolute bottom-20 left-4 z-[1000] p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-md">
         {loadingLocation ? ( <p className="text-gray-700 font-semibold text-sm animate-pulse">Finding you...</p> ) : ( <div> <p className="text-gray-900 font-mono text-xs">Lat: {displayCoords.lat.toFixed(4)}</p> <p className="text-gray-900 font-mono text-xs">Lon: {displayCoords.lng.toFixed(4)}</p> </div> )}
       </div>

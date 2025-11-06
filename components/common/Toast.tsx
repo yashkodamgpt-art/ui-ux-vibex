@@ -1,0 +1,79 @@
+import React, { useState, useEffect } from 'react';
+
+export interface ToastProps {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'info';
+  onDismiss: (id: number) => void;
+}
+
+const typeStyles = {
+  success: {
+    bg: 'bg-green-500',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+    ),
+  },
+  error: {
+    bg: 'bg-red-500',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+  info: {
+    bg: 'bg-blue-500',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+};
+
+const Toast: React.FC<ToastProps> = ({ id, message, type, onDismiss }) => {
+  const [isExiting, setIsExiting] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsExiting(true);
+      const exitTimer = setTimeout(() => onDismiss(id), 300); // Wait for exit animation
+      return () => clearTimeout(exitTimer);
+    }, 3000); // Auto-dismiss after 3 seconds
+
+    return () => clearTimeout(timer);
+  }, [id, onDismiss]);
+
+  const styles = typeStyles[type];
+
+  return (
+    <div
+      className={`toast ${isExiting ? 'toast-exit' : ''} flex items-center w-full max-w-xs p-4 my-2 text-white ${styles.bg} rounded-lg shadow-lg`}
+      role="alert"
+    >
+      <div className="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-lg">
+        {styles.icon}
+      </div>
+      <div className="ml-3 text-sm font-semibold">{message}</div>
+      <button
+        type="button"
+        className="ml-auto -mx-1.5 -my-1.5 bg-white/20 text-white hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex h-8 w-8"
+        onClick={() => onDismiss(id)}
+        aria-label="Close"
+      >
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+          <path
+            fillRule="evenodd"
+            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+            clipRule="evenodd"
+          ></path>
+        </svg>
+      </button>
+    </div>
+  );
+};
+
+export default Toast;

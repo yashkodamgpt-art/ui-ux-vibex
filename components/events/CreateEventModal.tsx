@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Session, SessionType, Tag, Friend, GenderFilter, User } from '../../types';
 import { containsOffensiveContent } from '../../lib/contentFilter'; // NEW
@@ -42,7 +41,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
     const [eventTimeOffset, setEventTimeOffset] = useState(5);
     const [duration, setDuration] = useState(60);
     const [error, setError] = useState('');
-    const [errorField, setErrorField] = useState<string | null>(null); // NEW
+    const [errorField, setErrorField] = useState<string | null>(null);
     const [selectedEmoji, setSelectedEmoji] = useState('');
     const [recentlyUsedEmojis, setRecentlyUsedEmojis] = useState<string[]>([]);
     
@@ -60,6 +59,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
     const [returnTime, setReturnTime] = useState('');
     const [urgency, setUrgency] = useState<'Low' | 'Medium' | 'High'>('Low');
     
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const titleInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -104,7 +104,10 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
     const handleToggleTag = (tagId: string) => { setSelectedTagIds(prev => prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]); };
 
     const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault(); setError(''); setErrorField(null);
+        e.preventDefault();
+        if (isSubmitting) return;
+        
+        setError(''); setErrorField(null);
         if (!title.trim()) { setError('Please provide a title.'); setErrorField('title'); return; }
         if (!sessionType) { setError('A session type must be selected.'); return; }
         
@@ -118,22 +121,26 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
             if (new Date(returnTime) <= new Date()) { setError('Return time must be in the future.'); return; }
         }
 
+        setIsSubmitting(true);
         const eventTime = new Date(Date.now() + eventTimeOffset * 60 * 1000).toISOString();
         const config = sessionConfigs[sessionType];
         const creatorRole = (sessionType === 'seek' || sessionType === 'borrow') ? 'seeking' : 'offering';
 
-        onSubmit({
-            title, description, event_time: eventTime, duration, status: 'active', sessionType, emoji: selectedEmoji,
-            genderFilter: sessionType === 'vibe' ? genderFilter : 'neutral',
-            privacy: sessionType === 'vibe' ? privacy : 'public',
-            visibleToTags: sessionType === 'vibe' && privacy === 'private' ? selectedTagIds : undefined,
-            helpCategory: sessionType === 'seek' ? helpCategory : undefined,
-            skillTag: sessionType === 'cookie' ? skillTag : undefined,
-            expectedOutcome: sessionType === 'cookie' ? expectedOutcome : undefined,
-            returnTime: sessionType === 'borrow' ? new Date(returnTime).toISOString() : undefined,
-            urgency: sessionType === 'borrow' ? urgency : undefined,
-            participantRoles: { [user.id]: creatorRole },
-        });
+        setTimeout(() => { // Simulate network delay
+            onSubmit({
+                title, description, event_time: eventTime, duration, status: 'active', sessionType, emoji: selectedEmoji,
+                genderFilter: sessionType === 'vibe' ? genderFilter : 'neutral',
+                privacy: sessionType === 'vibe' ? privacy : 'public',
+                visibleToTags: sessionType === 'vibe' && privacy === 'private' ? selectedTagIds : undefined,
+                helpCategory: sessionType === 'seek' ? helpCategory : undefined,
+                skillTag: sessionType === 'cookie' ? skillTag : undefined,
+                expectedOutcome: sessionType === 'cookie' ? expectedOutcome : undefined,
+                returnTime: sessionType === 'borrow' ? new Date(returnTime).toISOString() : undefined,
+                urgency: sessionType === 'borrow' ? urgency : undefined,
+                participantRoles: { [user.id]: creatorRole },
+            });
+            setIsSubmitting(false);
+        }, 500);
     };
 
     if (!isOpen || !sessionType) return null;
@@ -149,6 +156,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
 
     const titleColors = getCharLimitColors(title.length, TITLE_MAX_CHARS);
     const descColors = getCharLimitColors(description.length, DESC_MAX_CHARS);
+    const isFormValid = title.trim().length > 0;
 
     return (
         <>
@@ -197,7 +205,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
 
                     <div className="flex justify-end space-x-4 flex-shrink-0 pt-2 border-t border-gray-200">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Cancel</button>
-                        <button type="submit" className={`px-6 py-2 ${colors.bg} text-white font-semibold rounded-lg shadow-md ${colors.hoverBg} focus:outline-none focus:ring-2 ${colors.ring} focus:ring-offset-2`}>Create</button>
+                        <button type="submit" disabled={!isFormValid || isSubmitting} className={`px-6 py-2 ${colors.bg} text-white font-semibold rounded-lg shadow-md ${colors.hoverBg} focus:outline-none focus:ring-2 ${colors.ring} focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed`}>
+                            {isSubmitting ? 'Creating...' : 'Create'}
+                        </button>
                     </div>
                 </form>
             </div>

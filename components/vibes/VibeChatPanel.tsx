@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import type { User, Session, SessionMessage, Friend } from '../../types';
 import { supabase } from '../../lib/supabaseClient';
@@ -27,7 +26,6 @@ const getCharLimitColors = (length: number, limit: number) => {
     return { text: 'text-gray-500', border: 'border-gray-300' };
 };
 
-// NEW: Participant Action Menu
 const ParticipantMenu: React.FC<{ onMakeLeader: () => void }> = ({ onMakeLeader }) => {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -61,11 +59,28 @@ const VibeChatPanel: React.FC<VibeChatPanelProps> = ({ isOpen, onClose, vibe, me
     const [participants, setParticipants] = useState<{id: string; username: string}[]>([]);
     const [activeTab, setActiveTab] = useState<'chat' | 'participants'>('chat');
     const [inputError, setInputError] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const isCreator = user.id === vibe.creator_id;
     const isGiver = vibe.sessionType === 'borrow' && vibe.participantRoles?.[user.id] === 'giver';
 
-    useEffect(() => { if (vibe?.participants.length > 0) { const fetchParticipants = async () => { const { data, error } = await supabase.from('profiles').select('id, username').in('id', vibe.participants); if (error) console.error("Error fetching participants:", error); else setParticipants(data); }; fetchParticipants(); } }, [vibe]);
-    const handleFormSubmit = (e: React.FormEvent) => { e.preventDefault(); if (messageText.trim()) { if (containsOffensiveContent(messageText)) { setInputError(true); setTimeout(() => setInputError(false), 500); return; } onSendMessage(messageText); setMessageText(''); } };
+    useEffect(() => { if (vibe?.participants?.length > 0) { const fetchParticipants = async () => { const { data, error } = await supabase.from('profiles').select('id, username').in('id', vibe.participants); if (error) console.error("Error fetching participants:", error); else setParticipants(data || []); }; fetchParticipants(); } else { setParticipants([]); } }, [vibe]);
+    
+    const handleFormSubmit = (e: React.FormEvent) => { 
+        e.preventDefault(); 
+        if (isSending || !messageText.trim()) return;
+        
+        if (containsOffensiveContent(messageText)) { 
+            setInputError(true); 
+            setTimeout(() => setInputError(false), 500); 
+            return; 
+        } 
+        
+        setIsSending(true);
+        onSendMessage(messageText); 
+        setMessageText('');
+        setTimeout(() => setIsSending(false), 1000); // Prevent spamming
+    };
+    
     const scrollToBottom = () => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); };
     useEffect(() => { if(isOpen) { setActiveTab('chat'); } }, [isOpen]);
     useEffect(() => { if (activeTab === 'chat') { scrollToBottom(); } }, [messages, activeTab]);
@@ -109,7 +124,7 @@ const VibeChatPanel: React.FC<VibeChatPanelProps> = ({ isOpen, onClose, vibe, me
                         <input type="text" value={messageText} onChange={e => setMessageText(e.target.value)} maxLength={MAX_CHARS} placeholder="Type your message..." className={`w-full px-4 py-2 bg-white border rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 ${inputError ? 'shake-error border-red-500' : charColors.border}`} style={{fontSize: '16px'}}/>
                         <p className={`absolute right-4 bottom-[-18px] text-xs ${charColors.text}`}>{messageText.length}/{MAX_CHARS}</p>
                     </div>
-                    <button type="submit" className="p-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors"> <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"> <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /> </svg> </button>
+                    <button type="submit" disabled={isSending} className="p-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors disabled:bg-gray-400"> <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"> <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /> </svg> </button>
                 </form>
             </div>
         </>
@@ -146,9 +161,9 @@ const VibeChatPanel: React.FC<VibeChatPanelProps> = ({ isOpen, onClose, vibe, me
             <div onClick={onClose} className={`fixed inset-0 bg-black/40 z-[2000] transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} aria-hidden="true" />
             <div className={`fixed bottom-0 left-0 right-0 z-[2010] bg-gray-50 rounded-t-2xl shadow-2xl modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '75vh' }} role="dialog" aria-modal="true" aria-labelledby="vibe-chat-title">
                 <div className="p-4 flex flex-col h-full">
-                    <div className="flex-shrink-0 text-center pb-2 relative"> <div className="mx-auto w-12 h-1.5 bg-gray-300 rounded-full mb-2" /> <h2 id="vibe-chat-title" className="text-xl font-bold text-gray-800 truncate px-12">{vibe.title}</h2> <button onClick={onClose} className="absolute top-1 right-2 p-2 text-gray-500 hover:text-gray-800 rounded-full hover:bg-gray-100" aria-label="Close chat"> <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}> <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /> </svg> </button> </div>
-                    {vibe.sessionType === 'borrow' && (<div className="flex-shrink-0 p-2 bg-yellow-100 text-yellow-800 text-xs text-center border-y border-yellow-200"><strong>Safety first!</strong> Be cautious when sharing contact info. Meet in public places.</div>)}
-                    <div className="flex-shrink-0 border-b border-gray-200"> <nav className="flex justify-around -mb-px"> <button onClick={() => setActiveTab('chat')} className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'chat' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Chat</button> <button onClick={() => setActiveTab('participants')} className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'participants' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Participants ({vibe.participants.length})</button> </nav> </div>
+                    <div className="flex-shrink-0 text-center pb-2 relative"> <div className="mx-auto w-12 h-1.5 bg-gray-300 rounded-full mb-2" /> <h2 id="vibe-chat-title" className="text-xl font-bold text-gray-800 truncate px-12">{vibe?.title ?? 'Chat'}</h2> <button onClick={onClose} className="absolute top-1 right-2 p-2 text-gray-500 hover:text-gray-800 rounded-full hover:bg-gray-100" aria-label="Close chat"> <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}> <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /> </svg> </button> </div>
+                    {vibe?.sessionType === 'borrow' && (<div className="flex-shrink-0 p-2 bg-yellow-100 text-yellow-800 text-xs text-center border-y border-yellow-200"><strong>Safety first!</strong> Be cautious when sharing contact info. Meet in public places.</div>)}
+                    <div className="flex-shrink-0 border-b border-gray-200"> <nav className="flex justify-around -mb-px"> <button onClick={() => setActiveTab('chat')} className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'chat' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Chat</button> <button onClick={() => setActiveTab('participants')} className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'participants' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Participants ({vibe?.participants?.length ?? 0})</button> </nav> </div>
                     <div className="flex-grow flex flex-col overflow-hidden"> {activeTab === 'participants' ? renderParticipants() : renderChat()} </div>
                     <div className="flex-shrink-0 pt-2 border-t border-gray-200">
                         {isGiver && ( <button onClick={() => alert("MOCK: Marked as returned!")} className="w-full mt-1 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition-colors">Mark as Returned</button> )}

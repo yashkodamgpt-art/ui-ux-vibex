@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { User, Friend, Tag, FriendRequest } from '../../types';
 import { MOCK_USERS_DATABASE } from '../../lib/mockData';
 import FriendsPanel from './FriendsPanel';
@@ -27,23 +26,27 @@ interface SocialPageProps {
   onOpenAssignTagModal: (friend: Friend) => void;
 }
 
-const SocialPage: React.FC<SocialPageProps> = ({ 
-    user, friends, tags, friendRequests, 
-    onSaveTag, onDeleteTag, onRemoveFriend, onSaveFriendTags, 
-    onSendRequest, onAcceptRequest, onRejectRequest, 
-    onViewFriendProfile, setConfirmation, 
-    onOpenCreateTagModal, onOpenEditTagModal, onOpenAssignTagModal 
-}) => {
+const SocialPage: React.FC<SocialPageProps> = (props) => {
   const [activeTab, setActiveTab] = useState<SocialTab>('Friends');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading data when the component mounts
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500); // Simulate a 500ms network request
+    return () => clearTimeout(timer);
+  }, []);
 
   const renderContent = () => {
     switch(activeTab) {
       case 'Friends':
-        return <FriendsPanel friends={friends} tags={tags} onViewProfile={onViewFriendProfile} onRemoveFriend={onRemoveFriend} onAssignToTags={onOpenAssignTagModal} />;
+        return <FriendsPanel isLoading={isLoading} friends={props.friends} tags={props.tags} onViewProfile={props.onViewFriendProfile} onRemoveFriend={props.onRemoveFriend} onAssignToTags={props.onOpenAssignTagModal} />;
       case 'Search':
-        return <SearchPanel currentUser={user} friends={friends} allUsers={MOCK_USERS_DATABASE} friendRequests={friendRequests} onSendRequest={onSendRequest} onAcceptRequest={onAcceptRequest} onRejectRequest={onRejectRequest} onViewProfile={onViewFriendProfile} />;
+        return <SearchPanel currentUser={props.user} friends={props.friends} allUsers={MOCK_USERS_DATABASE} friendRequests={props.friendRequests} onSendRequest={props.onSendRequest} onAcceptRequest={props.onAcceptRequest} onRejectRequest={props.onRejectRequest} onViewProfile={props.onViewFriendProfile} />;
       case 'Tags':
-        return <TagsPanel tags={tags} friends={friends} onViewProfile={onViewFriendProfile} onCreateTag={onOpenCreateTagModal} onEditTag={onOpenEditTagModal} onDeleteTag={onDeleteTag} />;
+        return <TagsPanel isLoading={isLoading} tags={props.tags} friends={props.friends} onViewProfile={props.onViewFriendProfile} onCreateTag={props.onOpenCreateTagModal} onEditTag={props.onOpenEditTagModal} onDeleteTag={props.onDeleteTag} />;
       default:
         return null;
     }
@@ -53,9 +56,9 @@ const SocialPage: React.FC<SocialPageProps> = ({
     <div className="h-full flex flex-col">
       <div className="flex-shrink-0 border-b border-gray-200 px-4">
           <nav className="flex justify-around -mb-px">
-              <button onClick={() => setActiveTab('Friends')} className={`w-full py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'Friends' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Friends ({friends.length})</button>
+              <button onClick={() => setActiveTab('Friends')} className={`w-full py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'Friends' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Friends ({props.friends.length})</button>
               <button onClick={() => setActiveTab('Search')} className={`w-full py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'Search' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Search</button>
-              <button onClick={() => setActiveTab('Tags')} className={`w-full py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'Tags' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Tags ({tags.length})</button>
+              <button onClick={() => setActiveTab('Tags')} className={`w-full py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'Tags' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Tags ({props.tags.length})</button>
           </nav>
       </div>
       

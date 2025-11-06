@@ -23,6 +23,7 @@ const getCharLimitColors = (length: number, limit: number) => {
 const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose, conversation, currentUser, friend, onSendMessage }) => {
   const [messageText, setMessageText] = useState('');
   const [inputError, setInputError] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -37,15 +38,18 @@ const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose
   
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (messageText.trim()) {
-      if (containsOffensiveContent(messageText)) {
-          setInputError(true);
-          setTimeout(() => setInputError(false), 500);
-          return;
-      }
-      onSendMessage(messageText);
-      setMessageText('');
+    if (isSending || !messageText.trim()) return;
+    
+    if (containsOffensiveContent(messageText)) {
+        setInputError(true);
+        setTimeout(() => setInputError(false), 500);
+        return;
     }
+    
+    setIsSending(true);
+    onSendMessage(messageText);
+    setMessageText('');
+    setTimeout(() => setIsSending(false), 1000); // Prevent spamming
   };
 
   if (!isOpen) return null;
@@ -106,7 +110,7 @@ const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose
                   {messageText.length}/{MAX_CHARS}
               </span>
             </div>
-            <button type="submit" className="p-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors disabled:bg-gray-400" disabled={!messageText.trim()}>
+            <button type="submit" className="p-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors disabled:bg-gray-400" disabled={!messageText.trim() || isSending}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
                 </svg>
