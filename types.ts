@@ -14,6 +14,7 @@ export interface Profile {
   interests: string[]; // e.g., ["Chess", "Football"]
   cookieScore: number; // Our new "Cookie Score"
   privacy: 'public' | 'friends' | 'private';
+  gender: 'male' | 'female' | 'other'; // NEW
   // NEW: Fields for Cookie Score dashboard
   skillScores: { [key: string]: number };
   vouchHistory: Vouch[];
@@ -68,8 +69,13 @@ export interface Session {
   
   // Conditional Fields
   genderFilter: GenderFilter; // 'neutral' or 'same_gender' (for 'vibe')
+  creatorGender?: 'male' | 'female' | 'other'; // NEW
   returnTime?: string; // ISO string (for 'borrow')
-  flow: 'seeking' | 'offering'; // (for 'seek' and 'cookie')
+  flow?: 'seeking' | 'offering'; // (for 'seek' and 'cookie')
+
+  // NEW: Privacy fields for private vibes
+  privacy: 'public' | 'private';
+  visibleToTags?: string[]; // Array of tag IDs
 }
 
 /**
@@ -95,6 +101,7 @@ export interface Friend {
   year: number;
   cookieScore: number;
   mutualFriends: number;
+  gender: 'male' | 'female' | 'other'; // NEW
 }
 
 /**

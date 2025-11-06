@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import type { Session, User } from '../../types';
 import type { CampusZoneName } from '../filters/FilterChipBar';
@@ -41,7 +40,6 @@ function formatRemainingTime(minutes: number): string {
     return `Ends in ${hours}h ${mins}m`;
 }
 
-// Simple hash to get a color from a string (for avatars)
 const stringToColor = (str: string) => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -82,21 +80,17 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
     }
   }));
 
-  // Effect to update current time every minute
   useEffect(() => {
       const timerId = setInterval(() => setNow(new Date()), 60000);
       return () => clearInterval(timerId);
   }, []);
 
-  // Effect 1: Initialize map instance
   useEffect(() => {
     if (!mapRef.current || typeof L === 'undefined') {
         console.error("MapView: Leaflet library (L) is not defined or map container is not available.");
         setError("Map could not be loaded.");
         return;
     }
-    console.log('🗺️ Initializing map...');
-
     const map = L.map(mapRef.current, { center: IITGN_COORDS, zoom: INITIAL_ZOOM, zoomControl: false, preferCanvas: true });
     mapInstanceRef.current = map;
     
@@ -111,22 +105,18 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
     userMarkerRef.current = L.marker(IITGN_COORDS).addTo(map);
     eventsLayerRef.current = L.layerGroup().addTo(map);
     
-    console.log('✅ Map ready');
     setTimeout(() => map.invalidateSize(), 100);
 
     return () => { map.remove(); };
   }, []);
 
-  // Effect 2: Get user location (runs after map is initialized)
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     
-    console.log('📍 Getting location...');
     setLoadingLocation(true);
     setError(null);
 
     const locationTimeout = setTimeout(() => {
-        console.warn('Location request timed out after 5 seconds.');
         setError('Could not get your location in time. Showing default location.');
         setLoadingLocation(false);
     }, 5000);
@@ -135,7 +125,6 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
       (position) => {
         clearTimeout(locationTimeout);
         const userCoords: [number, number] = [position.coords.latitude, position.coords.longitude];
-        console.log(`✅ Location found: [${userCoords[0]}, ${userCoords[1]}]`);
         onSetUserLocation(userCoords);
 
         if (mapInstanceRef.current) {
@@ -148,7 +137,6 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
       },
       (geoError: GeolocationPositionError) => {
         clearTimeout(locationTimeout);
-        console.error('Geolocation error:', geoError);
         let errorMessage = 'Unable to retrieve your location.';
         if (geoError.code === geoError.PERMISSION_DENIED) {
           errorMessage = 'Location access denied. Please enable it in your browser settings.';
@@ -162,19 +150,15 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
     return () => clearTimeout(locationTimeout);
   }, [onSetUserLocation]);
 
-  // Effect to invalidate map size when it becomes visible
   useEffect(() => {
     if (isVisible && mapInstanceRef.current) {
-      console.log('🗺️ Map became visible, invalidating size.');
       setTimeout(() => mapInstanceRef.current.invalidateSize(), 100);
     }
   }, [isVisible]);
 
-  // Effect to pan/zoom map on filter change
   useEffect(() => {
       if (mapInstanceRef.current && activeFilter && campusZones[activeFilter]) {
           const zone = campusZones[activeFilter];
-          console.log(`🗺️ Filter changed to "${activeFilter}". Flying to [${zone.coords[0]}, ${zone.coords[1]}]`);
           mapInstanceRef.current.flyTo(zone.coords, zone.zoom);
       }
   }, [activeFilter, campusZones]);
@@ -242,7 +226,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         const isActive = !isScheduled;
         const minutesToStart = (startTime - nowTime) / 60000;
 
-        if (isScheduled && minutesToStart <= 5) return; // Ignore scheduled events starting in less than 5 mins for this logic
+        if (isScheduled && minutesToStart <= 5) return;
 
         const participantCount = event.participants?.length || 1;
         const markerSize = Math.min(32 + (participantCount - 1) * 4, 56);
@@ -250,8 +234,12 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         let markerHtml = `<div class="emoji-container" style="font-size: ${markerSize * 0.7}px; text-align: center; line-height: ${markerSize}px;">${event.emoji}</div>`;
         if (isActive) {
             markerHtml += '<div class="active-indicator"></div>';
-        } else { // isScheduled
+        } else {
             markerHtml += `<div class="countdown-timer">Starts in ${Math.round(minutesToStart)}m</div>`;
+        }
+
+        if (event.privacy === 'private') {
+            markerHtml += '<div class="private-indicator">🔒</div>';
         }
 
         const eventIcon = L.divIcon({
@@ -262,7 +250,6 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
       
         const eventMarker = L.marker([event.lat, event.lng], { icon: eventIcon }).addTo(layer);
         
-        // --- Popup Logic ---
         const popupNode = document.createElement('div');
         popupNode.className = "p-1 font-sans";
 
@@ -276,12 +263,14 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
             } else {
                 timeStatusHtml = `<p class="text-xs text-gray-500">Ends at: ${new Date(endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>`;
             }
-        } else { // Scheduled
+        } else {
             timeStatusHtml = `<p class="text-xs text-gray-500">Starts at: ${new Date(startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>`;
         }
         
+        const isGenderFiltered = event.genderFilter === 'same_gender';
+
         popupNode.innerHTML = `
-            <h3 class="font-bold text-lg text-purple-800">${event.title}</h3>
+            <h3 class="font-bold text-lg text-purple-800 flex items-center gap-2">${event.title} ${isGenderFiltered ? '<span title="Same gender only">⚧️</span>' : ''}</h3>
             ${event.description ? `<p class="text-gray-700 my-1">${event.description}</p>` : ''}
             <div class="flex items-center justify-between mt-2">
                 <div class="participant-avatars">${avatarsHtml}</div>
@@ -321,13 +310,25 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         } else {
             const joinButton = document.createElement('button');
             joinButton.className = "w-full text-center font-bold bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed";
-            joinButton.innerText = "Join Vibe";
-            if (activeVibe) {
-                joinButton.disabled = true;
+            
+            const isGenderMismatch = isGenderFiltered && user.profile.gender !== event.creatorGender;
+            // FIX: Coerce `activeVibe` to a boolean. The `||` operator returns the first truthy value,
+            // which could be the `activeVibe` object itself, causing a type error for `joinButton.disabled`.
+            const cannotJoin = !!activeVibe || isGenderMismatch;
+
+            joinButton.disabled = cannotJoin;
+            if (isGenderMismatch) {
+                joinButton.innerText = "Same Gender Only";
+            } else if (activeVibe) {
                 joinButton.innerText = "In another Vibe";
+            } else {
+                joinButton.innerText = "Join Vibe";
             }
+
             controlsContainer.appendChild(joinButton);
-            L.DomEvent.on(joinButton, 'click', () => { onJoinVibe(event.id); map.closePopup(); });
+            if (!cannotJoin) {
+                L.DomEvent.on(joinButton, 'click', () => { onJoinVibe(event.id); map.closePopup(); });
+            }
         }
         
         if(controlsContainer.hasChildNodes()) popupNode.appendChild(controlsContainer);
