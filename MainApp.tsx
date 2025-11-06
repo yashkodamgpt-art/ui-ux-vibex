@@ -76,6 +76,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   const [viewedUser, setViewedUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mapViewRef = useRef<MapViewRef>(null);
+  const messageSubscriptionRef = useRef<RealtimeChannel | null>(null);
   const [sessionValid, setSessionValid] = useState(true);
   const [confirmation, setConfirmation] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
   const [vouchingSession, setVouchingSession] = useState<Session | null>(null);
@@ -151,6 +152,55 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
           channel.unsubscribe();
       };
   }, [user.id, addToast]);
+  
+  // --- SESSION MESSAGES: FETCH & SUBSCRIBE ---
+  useEffect(() => {
+    const setupMessages = async () => {
+        if (activeVibe) {
+            // Fetch initial messages
+            const { data, error } = await supabaseService.fetchSessionMessages(activeVibe.id);
+            if (error) {
+                addToast('Could not load chat messages.', 'error');
+                setChatMessages([]);
+            } else {
+                setChatMessages(data || []);
+            }
+
+            // Unsubscribe from previous channel if it exists
+            if (messageSubscriptionRef.current) {
+                messageSubscriptionRef.current.unsubscribe();
+            }
+
+            // Subscribe to new messages
+            const channel = subscriptions.subscribeToSessionMessages(activeVibe.id, (payload) => {
+                const newMessage = payload.new as SessionMessage;
+                setChatMessages(prev => {
+                    // Prevent duplicates if a message with the same ID already exists
+                    if (prev.some(m => m.id === newMessage.id)) return prev;
+                    return [...prev, newMessage];
+                });
+            });
+            messageSubscriptionRef.current = channel;
+
+        } else {
+            // Clean up when no vibe is active
+            setChatMessages([]);
+            if (messageSubscriptionRef.current) {
+                messageSubscriptionRef.current.unsubscribe();
+                messageSubscriptionRef.current = null;
+            }
+        }
+    };
+
+    setupMessages();
+
+    // Cleanup on component unmount
+    return () => {
+        if (messageSubscriptionRef.current) {
+            messageSubscriptionRef.current.unsubscribe();
+        }
+    };
+  }, [activeVibe, addToast]);
 
 
   // --- NOTIFICATION HANDLERS ---
@@ -307,7 +357,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
             sessionType: selectedSessionType,
         };
 
-        const { data, error } = await supabaseService.createSession(newSessionData as any); // Cast to any to bypass strict Omit check
+        const { data, error } = await supabaseService.createSession(newSessionData as any);
 
         if (error || !data || data.length === 0) {
             throw error || new Error('Session creation returned no data.');
@@ -381,7 +431,31 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
         addToast("Could not join session.", "error");
     }
   }, [activeVibe, user.id, addToast, sessions]);
-  const handleSendMessage = useCallback(async (text: string, isSystemMessage = false) => { try { if (!activeVibe) return; const sender = isSystemMessage ? { username: 'System' } : { username: user.profile.username }; const senderId = isSystemMessage ? 'system' : user.id; const newMessage: SessionMessage = { id: Math.floor(Math.random() * 10000), sender_id: senderId, session_id: activeVibe.id, text, created_at: new Date().toISOString(), sender }; setChatMessages(prev => [...prev, newMessage]); } catch (e) { console.error("Error sending message:", e); } }, [activeVibe, user.id, user.profile.username]);
+  
+  const handleSendMessage = useCallback(async (text: string, isSystemMessage = false) => {
+    if (!activeVibe) return;
+
+    if (isSystemMessage) {
+        // System messages are local-only and not persisted
+        const newMessage: SessionMessage = {
+            id: Math.random(), // Temporary ID
+            sender_id: 'system',
+            session_id: activeVibe.id,
+            text,
+            created_at: new Date().toISOString(),
+            sender: { username: 'System' }
+        };
+        setChatMessages(prev => [...prev, newMessage]);
+        return;
+    }
+
+    // For user messages, send to backend and let the subscription handle the update.
+    const { error } = await supabaseService.sendSessionMessage(activeVibe.id, user.id, text);
+    
+    if (error) {
+        addToast('Message could not be sent.', 'error');
+    }
+  }, [activeVibe, user.id, addToast]);
   
   // --- SESSION EDGE CASES ---
   const handleLeaveVibe = useCallback(async (sessionId: number) => {
@@ -490,7 +564,6 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   // --- PROFILE & UI HANDLERS ---
   const handleOpenProfile = useCallback(async (username: string) => { addToast(`Viewing profile for ${username} is not yet implemented.`, 'info'); }, [addToast]);
   const handleViewFriendProfile = useCallback((friend: Friend) => { try { 
-// FIX: Removed non-existent 'gender' property from Profile object creation. The 'gender' property does not exist on Friend or Profile types.
 const userToView: User = { id: friend.id, email: `${friend.username.toLowerCase()}@campus.dev`, profile: { username: friend.username, bio: `A ${friend.branch} student graduating in ${friend.year}.`, branch: friend.branch, year: friend.year, expertise: [], interests: [], cookieScore: friend.cookieScore, privacy: 'public', skillScores: {}, vouchHistory: [] } }; setViewedUser(userToView); setIsProfileModalOpen(true); } catch (e) { console.error("Error viewing friend profile:", e); } }, []);
   const handleTabClick = useCallback((tab: AppTab) => setActiveTab(tab), []);
 
