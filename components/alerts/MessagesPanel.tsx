@@ -42,8 +42,8 @@ const MessagesPanel: React.FC<MessagesPanelProps> = ({ conversations, currentUse
       ) : (
         <div className="text-center py-20">
           <p className="text-5xl mb-4">💬</p>
-          <h3 className="text-xl font-semibold text-gray-700">No messages yet</h3>
-          <p className="text-gray-500 mt-2">Start a conversation from a friend's profile.</p>
+          <h3 className="text-xl font-semibold text-gray-700">Your inbox is empty</h3>
+          <p className="text-gray-500 mt-2">Messages from friends will appear here.</p>
         </div>
       )}
     </div>

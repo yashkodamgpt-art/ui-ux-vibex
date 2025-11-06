@@ -1,4 +1,3 @@
-
 import type { User, Session, Friend, Tag, FriendRequest, DirectMessage, Conversation, Notification, Vouch } from '../types';
 
 // --- NEW MOCK VOUCH HISTORY ---
@@ -53,7 +52,6 @@ export const MOCK_USER: User = {
     interests: ['Football', 'Movies', 'Reading'],
     cookieScore: totalScore,
     privacy: 'public',
-    gender: 'male',
     skillScores: skillScores,
     vouchHistory: MOCK_VOUCH_HISTORY.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
   },
@@ -100,8 +98,6 @@ const generatePastSession = (id: number, daysAgo: number, createdByUser: boolean
     creator_id: creatorId,
     participants,
     creator: { username: creatorUsername },
-    genderFilter: 'neutral',
-    creatorGender: isCreator ? MOCK_USER.profile.gender : (id % 2 === 0 ? 'female' : 'male'),
     flow: (type === 'cookie' || type === 'vibe') ? 'offering' : 'seeking',
     privacy: 'public',
   };
@@ -143,8 +139,6 @@ export const MOCK_SESSIONS: Session[] = [
     creator_id: MOCK_USER.id,
     participants: [MOCK_USER.id, 'friend-2'],
     creator: { username: MOCK_USER.profile.username },
-    genderFilter: 'neutral',
-    creatorGender: 'male',
     privacy: 'public',
   },
   {
@@ -161,8 +155,6 @@ export const MOCK_SESSIONS: Session[] = [
     creator_id: 'friend-4',
     participants: ['friend-4', 'friend-1'],
     creator: { username: 'Diana' },
-    genderFilter: 'neutral',
-    creatorGender: 'female',
     privacy: 'public',
     helpCategory: 'Project',
     participantRoles: { 'friend-4': 'seeking', 'friend-1': 'offering' }
@@ -181,8 +173,6 @@ export const MOCK_SESSIONS: Session[] = [
     creator_id: MOCK_USER.id,
     participants: [MOCK_USER.id],
     creator: { username: MOCK_USER.profile.username },
-    genderFilter: 'neutral',
-    creatorGender: 'male',
     privacy: 'public',
     skillTag: 'Python',
     expectedOutcome: 'Understand variables, loops, and basic functions.',
@@ -202,28 +192,8 @@ export const MOCK_SESSIONS: Session[] = [
     creator_id: 'friend-5', // Ethan
     participants: ['friend-5'],
     creator: { username: 'Ethan' },
-    genderFilter: 'neutral',
-    creatorGender: 'male',
     privacy: 'private',
     visibleToTags: ['tag-4'],
-  },
-  {
-    id: 21,
-    title: 'Ladies Coding Night',
-    description: 'A safe space for women in tech to collaborate.',
-    lat: 23.1935,
-    lng: 72.6845,
-    sessionType: 'vibe',
-    emoji: '💻',
-    event_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // Starts in 1 hour
-    duration: 90,
-    status: 'active',
-    creator_id: 'friend-4', // Diana
-    participants: ['friend-4'],
-    creator: { username: 'Diana' },
-    genderFilter: 'same_gender',
-    creatorGender: 'female',
-    privacy: 'public',
   },
    // --- NEW: MOCK BORROW SESSIONS ---
   {
@@ -240,8 +210,6 @@ export const MOCK_SESSIONS: Session[] = [
     creator_id: 'friend-2', // Bob
     participants: ['friend-2'],
     creator: { username: 'Bob' },
-    genderFilter: 'neutral',
-    creatorGender: 'male',
     returnTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
     privacy: 'public',
     urgency: 'High',
@@ -261,8 +229,6 @@ export const MOCK_SESSIONS: Session[] = [
     creator_id: 'friend-6', // Fiona
     participants: ['friend-6', 'friend-1'], // Alice is the giver
     creator: { username: 'Fiona' },
-    genderFilter: 'neutral',
-    creatorGender: 'female',
     returnTime: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
     privacy: 'public',
     urgency: 'Low',
@@ -282,8 +248,6 @@ export const MOCK_SESSIONS: Session[] = [
     creator_id: MOCK_USER.id,
     participants: [MOCK_USER.id],
     creator: { username: MOCK_USER.profile.username },
-    genderFilter: 'neutral',
-    creatorGender: 'male',
     returnTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
     privacy: 'public',
     urgency: 'Medium',
@@ -294,18 +258,18 @@ export const MOCK_SESSIONS: Session[] = [
 
 // --- MOCK FRIENDS LIST ---
 export const MOCK_FRIENDS: Friend[] = [
-  { id: 'friend-1', username: 'Alice', branch: 'Electrical Eng.', year: 2024, cookieScore: 250, mutualFriends: 5, gender: 'female' },
-  { id: 'friend-2', username: 'Bob', branch: 'Mechanical Eng.', year: 2025, cookieScore: 180, mutualFriends: 3, gender: 'male' },
-  { id: 'friend-3', username: 'Charlie', branch: 'Chemical Eng.', year: 2026, cookieScore: 320, mutualFriends: 8, gender: 'male' },
-  { id: 'friend-4', username: 'Diana', branch: 'Civil Eng.', year: 2024, cookieScore: 95, mutualFriends: 2, gender: 'female' },
-  { id: 'friend-5', username: 'Ethan', branch: 'Computer Science', year: 2027, cookieScore: 450, mutualFriends: 12, gender: 'male' },
-  { id: 'friend-6', username: 'Fiona', branch: 'Materials Sci.', year: 2025, cookieScore: 210, mutualFriends: 6, gender: 'female' },
-  { id: 'friend-7', username: 'George', branch: 'Physics', year: 2026, cookieScore: 150, mutualFriends: 4, gender: 'male' },
-  { id: 'friend-8', username: 'Hannah', branch: 'Mathematics', year: 2024, cookieScore: 380, mutualFriends: 9, gender: 'female' },
-  { id: 'friend-9', username: 'Ian', branch: 'Computer Science', year: 2025, cookieScore: 290, mutualFriends: 7, gender: 'male' },
-  { id: 'friend-10', username: 'Jane', branch: 'Electrical Eng.', year: 2027, cookieScore: 110, mutualFriends: 1, gender: 'female' },
-  { id: 'friend-11', username: 'Kevin', branch: 'Mechanical Eng.', year: 2026, cookieScore: 50, mutualFriends: 0, gender: 'male' },
-  { id: 'friend-12', username: 'Laura', branch: 'Chemistry', year: 2025, cookieScore: 410, mutualFriends: 11, gender: 'female' },
+  { id: 'friend-1', username: 'Alice', branch: 'Electrical Eng.', year: 2024, cookieScore: 250, mutualFriends: 5 },
+  { id: 'friend-2', username: 'Bob', branch: 'Mechanical Eng.', year: 2025, cookieScore: 180, mutualFriends: 3 },
+  { id: 'friend-3', username: 'Charlie', branch: 'Chemical Eng.', year: 2026, cookieScore: 320, mutualFriends: 8 },
+  { id: 'friend-4', username: 'Diana', branch: 'Civil Eng.', year: 2024, cookieScore: 95, mutualFriends: 2 },
+  { id: 'friend-5', username: 'Ethan', branch: 'Computer Science', year: 2027, cookieScore: 450, mutualFriends: 12 },
+  { id: 'friend-6', username: 'Fiona', branch: 'Materials Sci.', year: 2025, cookieScore: 210, mutualFriends: 6 },
+  { id: 'friend-7', username: 'George', branch: 'Physics', year: 2026, cookieScore: 150, mutualFriends: 4 },
+  { id: 'friend-8', username: 'Hannah', branch: 'Mathematics', year: 2024, cookieScore: 380, mutualFriends: 9 },
+  { id: 'friend-9', username: 'Ian', branch: 'Computer Science', year: 2025, cookieScore: 290, mutualFriends: 7 },
+  { id: 'friend-10', username: 'Jane', branch: 'Electrical Eng.', year: 2027, cookieScore: 110, mutualFriends: 1 },
+  { id: 'friend-11', username: 'Kevin', branch: 'Mechanical Eng.', year: 2026, cookieScore: 50, mutualFriends: 0 },
+  { id: 'friend-12', username: 'Laura', branch: 'Chemistry', year: 2025, cookieScore: 410, mutualFriends: 11 },
 ];
 
 // --- MOCK TAGS ---
@@ -322,7 +286,6 @@ const branches = ['Computer Science', 'Electrical Eng.', 'Mechanical Eng.', 'Che
 const years = [2024, 2025, 2026, 2027, 2028];
 const firstNames = ['Alex', 'Ben', 'Chloe', 'David', 'Eva', 'Frank', 'Grace', 'Henry', 'Ivy', 'Jack', 'Kate', 'Leo', 'Mia', 'Noah', 'Olivia', 'Paul', 'Quinn', 'Rachel', 'Sam', 'Tina', 'Uma', 'Victor', 'Wendy', 'Xavier', 'Yara', 'Zoe'];
 const lastNames = ['Smith', 'Jones', 'Williams', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson'];
-const genders: ('male'|'female'|'other')[] = ['male', 'female'];
 
 export const MOCK_USERS_DATABASE: Friend[] = Array.from({ length: 55 }, (_, i) => {
     const fname = firstNames[i % firstNames.length];
@@ -334,7 +297,6 @@ export const MOCK_USERS_DATABASE: Friend[] = Array.from({ length: 55 }, (_, i) =
         year: years[i % years.length],
         cookieScore: Math.floor(Math.random() * 500),
         mutualFriends: Math.floor(Math.random() * 15),
-        gender: genders[i % genders.length],
     }
 });
 // Add some of the existing friends to the database to test the 'Friends' status

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { User, Profile, Session } from '../../types';
 import CookieScoreDashboard from './CookieScoreDashboard';
@@ -65,7 +64,7 @@ const SelectionTile: React.FC<{label: string; isSelected: boolean; onToggle: () 
                 isSelected
                     ? 'bg-green-600 text-white border-green-600 shadow-sm'
                     : 'bg-white text-gray-700 border-gray-300 hover:border-green-500'
-            } ${disabled && !isSelected ? 'opacity-50 cursor-not-allowed' : ''}`}
+            } ${disabled && !isSelected ? 'opacity-40 cursor-not-allowed' : ''}`}
         >
             {label}
         </button>
@@ -114,14 +113,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, sessio
   };
 
   const handleSave = () => {
-      setIsSaving(true);
-      setShowSuccess(false);
-      setTimeout(() => {
-          onProfileUpdate(profileData);
-          setIsSaving(false);
-          setShowSuccess(true);
-          setTimeout(() => setShowSuccess(false), 2000);
-      }, 1500);
+    setIsSaving(true);
+    setShowSuccess(false);
+    // Simulate network delay
+    setTimeout(() => {
+        onProfileUpdate(profileData);
+        setIsSaving(false);
+        setShowSuccess(true);
+        // After 1.5s, hide the success message and revert to text
+        setTimeout(() => {
+            setShowSuccess(false);
+        }, 1500);
+    }, 1000); // 1s save spinner
   };
   
   const initial = user.profile.username.charAt(0).toUpperCase();
@@ -170,7 +173,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, sessio
                 {/* Bio */}
                 <div>
                     <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                    <textarea id="bio" name="bio" value={profileData.bio} onChange={handleChange} maxLength={BIO_MAX_CHARS} rows={4} className={`w-full px-3 py-2 bg-gray-50 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${bioColors.border}`} placeholder="Tell us a little about yourself..."></textarea>
+                    <textarea id="bio" name="bio" value={profileData.bio} onChange={handleChange} maxLength={BIO_MAX_CHARS} rows={4} className={`w-full px-4 py-2 bg-gray-50 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${bioColors.border}`} placeholder="Tell us a little about yourself..." style={{fontSize: '16px'}}></textarea>
                     <p className={`text-right text-xs mt-1 ${bioColors.text}`}>{profileData.bio.length}/{BIO_MAX_CHARS}</p>
                 </div>
 
@@ -202,6 +205,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, sessio
                         </div>
                     </div>
                 ))}
+                {profileData.expertise.length >= 5 && (
+                    <p className="text-xs text-center text-blue-600 mt-2">Maximum reached. Deselect to choose others.</p>
+                )}
               </div>
           </AccordionSection>
           
@@ -218,6 +224,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, sessio
                         </div>
                     </div>
                 ))}
+                 {profileData.interests.length >= 8 && (
+                    <p className="text-xs text-center text-blue-600 mt-2">Maximum reached. Deselect to choose others.</p>
+                )}
               </div>
           </AccordionSection>
       </div>

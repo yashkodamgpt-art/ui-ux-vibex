@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import type { User, Session, SessionMessage, Profile, SessionType, Friend, Tag, FriendRequest, GenderFilter, Notification } from './types';
+// FIX: Removed non-existent 'GenderFilter' from import.
+import type { User, Session, SessionMessage, Profile, SessionType, Friend, Tag, FriendRequest, Notification } from './types';
 import MapView, { type MapViewRef } from './components/map/MapView';
 import CreateEventModal from './components/events/CreateEventModal';
 import MyLocationButton from './components/common/MyLocationButton';
@@ -83,7 +85,10 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   // --- TOAST NOTIFICATION SYSTEM ---
   const addToast = useCallback((message: string, type: Toast['type'] = 'info') => {
     const newToast: Toast = { id: Date.now(), message, type };
-    setToasts(prev => [...prev, newToast]);
+    setToasts(prev => {
+      const updatedToasts = [newToast, ...prev];
+      return updatedToasts.slice(0, 3); // Keep only the 3 newest toasts
+    });
   }, []);
   const removeToast = useCallback((id: number) => { setToasts(prev => prev.filter(t => t.id !== id)); }, []);
 
@@ -122,7 +127,9 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   const handleCreateButtonClick = useCallback(() => { if (isCreateMenuOpen || isPlacementMode) { handleCancelCreate(); } else { setIsCreateMenuOpen(true); } }, [isCreateMenuOpen, isPlacementMode, handleCancelCreate]);
   const handleSelectSessionType = useCallback((type: SessionType) => { setSelectedSessionType(type); setIsPlacementMode(true); setIsCreateMenuOpen(false); }, []);
   const handleMapPlacement = useCallback((coords: { lat: number; lng: number }) => { if (activeVibe) { addToast("You are already in a Vibe.", 'info'); handleCancelCreate(); return; } setNewEventCoords(coords); setIsCreateModalOpen(true); setIsPlacementMode(false); }, [activeVibe, handleCancelCreate, addToast]);
-  const handleCreateEvent = useCallback(async (eventData: Omit<Session, 'id' | 'creator' | 'creator_id' | 'lat' | 'lng' | 'participants' | 'creator'>) => { try { if (!newEventCoords || !sessionValid) return; const newSession: Session = { ...eventData, id: Math.floor(Math.random() * 10000), lat: newEventCoords.lat, lng: newEventCoords.lng, creator_id: user.id, participants: [user.id], creator: { username: user.profile.username }, sessionType: selectedSessionType || 'vibe', creatorGender: user.profile.gender }; setSessions(prevSessions => [...prevSessions, newSession]); setActiveVibe(newSession); handleCancelCreate(); addToast("Session created successfully!", "success"); } catch (e) { console.error("Error creating session:", e); addToast("Could not create session.", "error"); } }, [newEventCoords, sessionValid, user, selectedSessionType, handleCancelCreate, addToast]);
+  const handleCreateEvent = useCallback(async (eventData: Omit<Session, 'id' | 'creator' | 'creator_id' | 'lat' | 'lng' | 'participants' | 'creator'>) => { try { if (!newEventCoords || !sessionValid) return; 
+// FIX: Removed non-existent 'creatorGender' property from Session object creation.
+const newSession: Session = { ...eventData, id: Math.floor(Math.random() * 10000), lat: newEventCoords.lat, lng: newEventCoords.lng, creator_id: user.id, participants: [user.id], creator: { username: user.profile.username }, sessionType: selectedSessionType || 'vibe' }; setSessions(prevSessions => [...prevSessions, newSession]); setActiveVibe(newSession); handleCancelCreate(); addToast("Session created successfully!", "success"); } catch (e) { console.error("Error creating session:", e); addToast("Could not create session.", "error"); } }, [newEventCoords, sessionValid, user, selectedSessionType, handleCancelCreate, addToast]);
   
   // --- SESSION HANDLERS ---
   const handleRecenterMap = useCallback(() => mapViewRef.current?.recenter(), []);
@@ -203,7 +210,9 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   
   // --- PROFILE & UI HANDLERS ---
   const handleOpenProfile = useCallback(async (username: string) => { addToast(`Viewing profile for ${username} is not yet implemented.`, 'info'); }, [addToast]);
-  const handleViewFriendProfile = useCallback((friend: Friend) => { try { const userToView: User = { id: friend.id, email: `${friend.username.toLowerCase()}@campus.dev`, profile: { username: friend.username, bio: `A ${friend.branch} student graduating in ${friend.year}.`, branch: friend.branch, year: friend.year, expertise: [], interests: [], cookieScore: friend.cookieScore, privacy: 'public', skillScores: {}, vouchHistory: [], gender: friend.gender, } }; setViewedUser(userToView); setIsProfileModalOpen(true); } catch (e) { console.error("Error viewing friend profile:", e); } }, []);
+  const handleViewFriendProfile = useCallback((friend: Friend) => { try { 
+// FIX: Removed non-existent 'gender' property from Profile object creation. The 'gender' property does not exist on Friend or Profile types.
+const userToView: User = { id: friend.id, email: `${friend.username.toLowerCase()}@campus.dev`, profile: { username: friend.username, bio: `A ${friend.branch} student graduating in ${friend.year}.`, branch: friend.branch, year: friend.year, expertise: [], interests: [], cookieScore: friend.cookieScore, privacy: 'public', skillScores: {}, vouchHistory: [] } }; setViewedUser(userToView); setIsProfileModalOpen(true); } catch (e) { console.error("Error viewing friend profile:", e); } }, []);
   const handleTabClick = useCallback((tab: AppTab) => setActiveTab(tab), []);
 
   // --- ACTIVE SESSION INDICATOR LOGIC ---
@@ -215,7 +224,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   return (
     <div className="h-screen w-screen overflow-hidden bg-green-50 flex flex-col">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-      {activeTab === 'Home' ? ( <> <HomeHeader user={user} onOpenProfile={() => setIsProfileQuickViewOpen(true)} /> <FilterChipBar filters={filterChips} activeFilter={activeFilter} onSelectFilter={handleFilterSelect} /> </> ) : ( <PageHeader username={user.profile.username} onLogout={onLogout} /> )}
+      {activeTab === 'Home' ? ( <> <HomeHeader /> <FilterChipBar filters={filterChips} activeFilter={activeFilter} onSelectFilter={handleFilterSelect} /> </> ) : ( <PageHeader username={user.profile.username} onLogout={onLogout} /> )}
       
       <main className="flex-grow relative overflow-hidden">
         {error && (<div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg max-w-md w-11/12" role="alert">{/* ... */}</div>)}

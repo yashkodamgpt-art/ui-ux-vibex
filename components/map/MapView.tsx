@@ -33,14 +33,43 @@ export interface MapViewRef {
 }
 
 // --- HELPER FUNCTIONS ---
-function formatRemainingTime(minutes: number): string {
-    if (minutes < 1) return 'Ending soon';
-    if (minutes < 60) return `${Math.round(minutes)}m left`;
-    const hours = Math.floor(minutes / 60);
-    const mins = Math.round(minutes % 60);
-    if (mins === 0) return `${hours}h left`;
-    return `${hours}h ${mins}m left`;
+function formatPopupTime(event: Session, now: Date, isJoined: boolean): string {
+    const startTime = new Date(event.event_time);
+    const endTime = new Date(startTime.getTime() + event.duration * 60 * 1000);
+    const nowTime = now.getTime();
+    
+    const isScheduled = startTime.getTime() > nowTime;
+    const isActive = !isScheduled;
+    
+    const timeOptions: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+    const formattedStartTime = startTime.toLocaleTimeString([], timeOptions).replace(' ', '');
+    const formattedEndTime = endTime.toLocaleTimeString([], timeOptions).replace(' ', '');
+
+    if (isScheduled) {
+        const minutesToStart = Math.round((startTime.getTime() - nowTime) / 60000);
+        return `<p class="text-xs text-gray-500">Starts in ${minutesToStart}m (${formattedStartTime})</p>`;
+    }
+    
+    if (isActive) {
+        const minutesToEnd = Math.round((endTime.getTime() - nowTime) / 60000);
+        if (minutesToEnd < 1) return `<p class="text-sm font-bold text-red-600">Ending soon</p>`;
+        
+        const hours = Math.floor(minutesToEnd / 60);
+        const mins = Math.round(minutesToEnd % 60);
+        let remainingStr = '';
+        if (hours > 0) remainingStr += `${hours}h `;
+        if (mins > 0 || hours === 0) remainingStr += `${mins}m left`;
+        
+        if (isJoined) {
+            return `<p class="text-sm font-bold text-green-600">${remainingStr.trim()} (ends ${formattedEndTime})</p>`;
+        } else {
+             return `<p class="text-xs text-gray-500">Ends at: ${formattedEndTime}</p>`;
+        }
+    }
+    
+    return ''; // Should not happen for active sessions
 }
+
 const stringToColor = (str: string) => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -87,7 +116,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
   }));
 
   useEffect(() => { const timerId = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(timerId); }, []);
-  useEffect(() => { if (!mapRef.current || typeof L === 'undefined') { console.error("MapView: Leaflet library (L) is not defined or map container is not available."); setError("Map could not be loaded."); return; } const map = L.map(mapRef.current, { center: IITGN_COORDS, zoom: INITIAL_ZOOM, zoomControl: false, preferCanvas: true }); mapInstanceRef.current = map; L.control.zoom({ position: 'topright' }).addTo(map); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19, keepBuffer: 2, }).addTo(map); L.control.scale({ position: 'bottomright' }).addTo(map); userMarkerRef.current = L.marker(IITGN_COORDS).addTo(map); eventsLayerRef.current = L.layerGroup().addTo(map); setTimeout(() => map.invalidateSize(), 100); return () => { map.remove(); }; }, []);
+  useEffect(() => { if (!mapRef.current || typeof L === 'undefined') { console.error("MapView: Leaflet library (L) is not defined or map container is not available."); setError("Map could not be loaded."); return; } const map = L.map(mapRef.current, { center: IITGN_COORDS, zoom: INITIAL_ZOOM, zoomControl: false, preferCanvas: true }); mapInstanceRef.current = map; L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19, keepBuffer: 2, }).addTo(map); L.control.scale({ position: 'bottomright' }).addTo(map); userMarkerRef.current = L.marker(IITGN_COORDS).addTo(map); eventsLayerRef.current = L.layerGroup().addTo(map); setTimeout(() => map.invalidateSize(), 100); return () => { map.remove(); }; }, []);
   useEffect(() => { if (!mapInstanceRef.current) return; setLoadingLocation(true); setError(null); const locationTimeout = setTimeout(() => { setError('Could not get your location in time. Using default campus location.'); setLoadingLocation(false); }, 5000); navigator.geolocation.getCurrentPosition( (position) => { clearTimeout(locationTimeout); const userCoords: [number, number] = [position.coords.latitude, position.coords.longitude]; onSetUserLocation(userCoords); if (mapInstanceRef.current) { mapInstanceRef.current.flyTo(userCoords, LOCATION_FOUND_ZOOM); if (userMarkerRef.current) userMarkerRef.current.setLatLng(userCoords); } setDisplayCoords({ lat: userCoords[0], lng: userCoords[1] }); setError(null); setLoadingLocation(false); }, (geoError: GeolocationPositionError) => { clearTimeout(locationTimeout); let errorMessage = 'Using default location. Enable GPS for accuracy.'; if (geoError.code === geoError.PERMISSION_DENIED) { errorMessage = 'Location access denied. Enable it for full functionality.'; } setError(errorMessage); setLoadingLocation(false); }, { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 } ); return () => clearTimeout(locationTimeout); }, [onSetUserLocation]);
   useEffect(() => { if (isVisible && mapInstanceRef.current) { setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); } }, [isVisible]);
   useEffect(() => { if (mapInstanceRef.current && activeFilter && campusZones[activeFilter]) { const zone = campusZones[activeFilter]; mapInstanceRef.current.flyTo(zone.coords, zone.zoom); } }, [activeFilter, campusZones]);
@@ -145,18 +174,20 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         let markerHtml = `<div class="emoji-container" style="font-size: ${markerSize * 0.7}px; text-align: center; line-height: ${markerSize}px;">${event.emoji}</div>`;
         if (isActive) { markerHtml += '<div class="active-indicator"></div>'; } else { markerHtml += `<div class="countdown-timer">Starts in ${Math.round(minutesToStart)}m</div>`; }
         if (event.privacy === 'private') { markerHtml += '<div class="private-indicator">🔒</div>'; }
+        
+        const iconClasses = ['event-marker'];
+        if (isActive) iconClasses.push('active'); else iconClasses.push('scheduled');
+        if (event.privacy === 'private') iconClasses.push('private-marker');
 
-        const eventIcon = L.divIcon({ className: `event-marker ${isActive ? 'active' : 'scheduled'}`, html: markerHtml, iconSize: [markerSize, markerSize], });
+        const eventIcon = L.divIcon({ className: iconClasses.join(' '), html: markerHtml, iconSize: [markerSize, markerSize], });
         const eventMarker = L.marker([event.lat, event.lng], { icon: eventIcon }).addTo(layer);
         
         const popupNode = document.createElement('div'); popupNode.className = "p-1 font-sans";
         let avatarsHtml = event.participants?.map(pId => generateAvatar(pId, friends, user, event)).join('') ?? '';
 
-        let timeStatusHtml = '';
-        if (isActive) { if (event.participants.includes(user.id)) { const minutesToEnd = (endTime - nowTime) / 60000; timeStatusHtml = `<p class="text-sm font-bold text-green-600">${formatRemainingTime(minutesToEnd)}</p>`; } else { timeStatusHtml = `<p class="text-xs text-gray-500">Ends at: ${new Date(endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>`; } } 
-        else { timeStatusHtml = `<p class="text-xs text-gray-500">Starts at: ${new Date(startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>`; }
+        const isUserJoined = event.participants.includes(user.id);
+        const timeStatusHtml = formatPopupTime(event, now, isUserJoined);
         
-        const isGenderFiltered = event.genderFilter === 'same_gender';
         let cookieScoreHtml = '';
         if (event.sessionType === 'cookie' && event.skillTag) {
             const creatorProfile = event.creator_id === user.id ? user.profile : friends.find(f => f.id === event.creator_id);
@@ -179,7 +210,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
             borrowInfoHtml += `</div>`;
         }
 
-        popupNode.innerHTML = `<h3 class="font-bold text-lg text-purple-800 flex items-center gap-2">${event.title} ${isGenderFiltered ? '<span title="Same gender only">⚧️</span>' : ''}</h3> ${event.description ? `<p class="text-gray-700 my-1">${event.description}</p>` : ''} ${cookieScoreHtml} ${borrowInfoHtml} <div class="flex items-center justify-between mt-2"> <div class="participant-avatars">${avatarsHtml}</div> ${timeStatusHtml} </div>`;
+        popupNode.innerHTML = `<h3 class="font-bold text-lg text-purple-800 flex items-center gap-2">${event.title}</h3> ${event.description ? `<p class="text-gray-700 my-1">${event.description}</p>` : ''} ${cookieScoreHtml} ${borrowInfoHtml} <div class="flex items-center justify-between mt-2"> <div class="participant-avatars">${avatarsHtml}</div> ${timeStatusHtml} </div>`;
         
         const controlsContainer = document.createElement('div');
         controlsContainer.className = "mt-2 pt-2 border-t border-gray-200 flex flex-wrap items-center gap-2";
@@ -196,11 +227,9 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
             viewChatButton.innerText = "View Chat"; controlsContainer.appendChild(viewChatButton);
             L.DomEvent.on(viewChatButton, 'click', () => { onJoinVibe(event.id); onViewChat(); map.closePopup(); });
         } else {
-            const isGenderMismatch = isGenderFiltered && user.profile.gender !== event.creatorGender;
-            const cannotJoin = !!activeVibe || isGenderMismatch;
+            const cannotJoin = !!activeVibe;
             let disabledTooltip = '';
-            if (isGenderMismatch) disabledTooltip = "This is a same-gender only session.";
-            else if (activeVibe) disabledTooltip = "You are already in another session.";
+            if (activeVibe) disabledTooltip = "You are already in another session.";
 
             const createJoinButton = (text: string, role: 'seeking' | 'offering' | 'participant' | 'giver', primary = true) => {
                 const button = document.createElement('button');

@@ -1,25 +1,14 @@
-
 import React from 'react';
-import type { User } from '../../types';
 
 interface HomeHeaderProps {
-  user: User;
-  onOpenProfile: () => void;
+  // No props needed anymore
 }
 
-const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onOpenProfile }) => {
+const HomeHeader: React.FC<HomeHeaderProps> = () => {
   return (
     <header className="absolute top-0 left-0 right-0 z-[1000] flex items-center justify-between p-4 h-16 pointer-events-none">
-      {/* Profile button */}
-      <button 
-        onClick={onOpenProfile} 
-        className="h-10 w-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-105 transition-transform pointer-events-auto"
-        aria-label="Open profile quick view"
-      >
-        <div className="h-full w-full rounded-full bg-green-200 flex items-center justify-center">
-            <span className="text-xl font-bold text-green-700">{user.profile.username.charAt(0).toUpperCase()}</span>
-        </div>
-      </button>
+      {/* Placeholder to keep logo centered */}
+      <div className="h-10 w-10" aria-hidden="true"></div>
       
       {/* Logo */}
       <div className="bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-md pointer-events-auto">

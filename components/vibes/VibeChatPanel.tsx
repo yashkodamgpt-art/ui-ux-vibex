@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import type { User, Session, SessionMessage, Friend } from '../../types';
 import { supabase } from '../../lib/supabaseClient';
@@ -67,16 +68,17 @@ const VibeChatPanel: React.FC<VibeChatPanelProps> = ({ isOpen, onClose, vibe, me
     
     const handleFormSubmit = (e: React.FormEvent) => { 
         e.preventDefault(); 
-        if (isSending || !messageText.trim()) return;
+        const trimmedMessage = messageText.trim();
+        if (isSending || !trimmedMessage) return;
         
-        if (containsOffensiveContent(messageText)) { 
+        if (containsOffensiveContent(trimmedMessage)) { 
             setInputError(true); 
             setTimeout(() => setInputError(false), 500); 
             return; 
         } 
         
         setIsSending(true);
-        onSendMessage(messageText); 
+        onSendMessage(trimmedMessage); 
         setMessageText('');
         setTimeout(() => setIsSending(false), 1000); // Prevent spamming
     };
@@ -124,7 +126,7 @@ const VibeChatPanel: React.FC<VibeChatPanelProps> = ({ isOpen, onClose, vibe, me
                         <input type="text" value={messageText} onChange={e => setMessageText(e.target.value)} maxLength={MAX_CHARS} placeholder="Type your message..." className={`w-full px-4 py-2 bg-white border rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 ${inputError ? 'shake-error border-red-500' : charColors.border}`} style={{fontSize: '16px'}}/>
                         <p className={`absolute right-4 bottom-[-18px] text-xs ${charColors.text}`}>{messageText.length}/{MAX_CHARS}</p>
                     </div>
-                    <button type="submit" disabled={isSending} className="p-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors disabled:bg-gray-400"> <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"> <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /> </svg> </button>
+                    <button type="submit" disabled={isSending || !messageText.trim()} className="p-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"> <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"> <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /> </svg> </button>
                 </form>
             </div>
         </>

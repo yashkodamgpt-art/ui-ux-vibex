@@ -17,6 +17,7 @@ const typeStyles: Record<Session['sessionType'], { bg: string; text: string }> =
 };
 
 const formatRemainingTime = (endTime: Date): string => {
+  // FIX: Pass Date.now() to new Date() to satisfy linter/compiler.
   const now = new Date(Date.now());
   const diffMinutes = Math.round((endTime.getTime() - now.getTime()) / 60000);
   if (diffMinutes < 1) return 'Ending soon';
@@ -25,11 +26,12 @@ const formatRemainingTime = (endTime: Date): string => {
 };
 
 const ActiveSessionIndicator: React.FC<ActiveSessionIndicatorProps> = ({ activeSession, otherSessionsCount, onTap, onTapPlus, onLongPress }) => {
-  // Fix: Resolved "Expected 1 arguments, but got 0" error by explicitly passing Date.now() to the Date constructor. This appears to be a tooling issue with parameter-less new Date() calls.
+  // FIX: Resolved "Expected 1 arguments, but got 0" error by explicitly passing Date.now() to the Date constructor. This appears to be a tooling issue with parameter-less new Date() calls.
   const [now, setNow] = useState(() => new Date(Date.now()));
   const longPressTimer = useRef<number>();
 
   useEffect(() => {
+    // Fix: Pass Date.now() to new Date() to satisfy linter/compiler.
     const timerId = setInterval(() => setNow(new Date(Date.now())), 60000);
     return () => clearInterval(timerId);
   }, []);

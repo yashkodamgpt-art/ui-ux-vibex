@@ -59,6 +59,7 @@ const FriendsPanel: React.FC<FriendsPanelProps> = ({ isLoading, friends, tags, o
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          style={{fontSize: '16px'}}
         />
         <div className="flex items-center justify-end space-x-2">
             <span className="text-sm font-medium text-gray-600">Sort by:</span>
@@ -94,9 +95,11 @@ const FriendsPanel: React.FC<FriendsPanelProps> = ({ isLoading, friends, tags, o
       ) : (
         <div className="text-center py-16">
             <p className="text-5xl mb-4">👋🤝</p>
-            <h3 className="text-xl font-semibold text-gray-700">No friends found</h3>
+            <h3 className="text-xl font-semibold text-gray-700">
+                {searchQuery ? "No friends found" : "Start building your campus network!"}
+            </h3>
             <p className="text-gray-500 mt-2">
-              {searchQuery ? "Try a different search." : "Use the search tab to find people on campus."}
+              {searchQuery ? "Try a different search." : "Use the Search tab to find and connect with classmates."}
             </p>
         </div>
       )}

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Session, User, SessionType } from '../../types';
 import SessionHistoryCard from './SessionHistoryCard';
@@ -51,7 +52,9 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ user, allSessions }) =>
       return acc;
     }, {} as Record<SessionType, number>);
 
-    const mostFrequentType = Object.entries(typeCounts).sort(([, a], [, b]) => b - a)[0];
+    // FIX: Changed sort function to use index access (b[1] - a[1]) to resolve TypeScript error.
+    // This helps the compiler correctly infer the types for the arithmetic operation.
+    const mostFrequentType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
 
     return {
       totalJoined: userHistory.length,
@@ -63,9 +66,29 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ user, allSessions }) =>
   }, [userHistory]);
 
   const filteredHistory = useMemo(() => {
-    let filtered = userHistory;
-    // ... filtering logic ...
-    return filtered;
+    const now = new Date();
+    const weekAgo = new Date(new Date().setDate(now.getDate() - 7));
+    const monthAgo = new Date(new Date().setMonth(now.getMonth() - 1));
+
+    let dateFiltered = userHistory;
+
+    if (dateFilter === 'Last Week') {
+      dateFiltered = userHistory.filter(s => new Date(s.event_time) >= weekAgo);
+    } else if (dateFilter === 'Last Month') {
+      dateFiltered = userHistory.filter(s => new Date(s.event_time) >= monthAgo);
+    }
+    
+    switch (typeFilter) {
+      case 'Created':
+        return dateFiltered.filter(s => s.creator_id === user.id);
+      case 'Joined':
+        return dateFiltered.filter(s => s.participants.includes(user.id) && s.creator_id !== user.id);
+      case 'Cookies Given':
+        return dateFiltered.filter(s => s.sessionType === 'cookie' && s.creator_id === user.id);
+      case 'All':
+      default:
+        return dateFiltered;
+    }
   }, [userHistory, typeFilter, dateFilter, user.id]);
   
   useEffect(() => {

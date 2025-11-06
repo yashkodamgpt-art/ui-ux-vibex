@@ -59,9 +59,9 @@ const TagsPanel: React.FC<TagsPanelProps> = ({ isLoading, tags, friends, onViewP
       ) : (
         <div className="text-center py-16">
             <p className="text-5xl mb-4">🏷️</p>
-            <h3 className="text-xl font-semibold text-gray-700">No tags yet</h3>
+            <h3 className="text-xl font-semibold text-gray-700">Organize your friends with tags!</h3>
             <p className="text-gray-500 mt-2">
-                Create a tag to organize your friends into groups!
+                Create custom groups like 'Study Buddies' or 'Gaming Crew'.
             </p>
         </div>
       )}

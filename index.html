@@ -48,6 +48,12 @@
       position: relative; /* Needed for positioning child elements */
     }
 
+    /* NEW: Better distinction for private session markers */
+    .event-marker.private-marker {
+      border-color: #a78bfa; /* violet-400 */
+      box-shadow: 0 0 10px rgba(167, 139, 250, 0.8);
+    }
+
     /* NEW: Styles for scheduled (upcoming) sessions */
     .event-marker.scheduled .emoji-container {
       opacity: 0.5;

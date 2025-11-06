@@ -105,6 +105,7 @@ const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose
                   maxLength={MAX_CHARS}
                   placeholder="Type a message..."
                   className={`w-full px-4 py-3 bg-gray-100 border rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 ${inputError ? 'shake-error border-red-500' : charColors.border}`}
+                  style={{fontSize: '16px'}}
               />
               <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold ${charColors.text}`}>
                   {messageText.length}/{MAX_CHARS}

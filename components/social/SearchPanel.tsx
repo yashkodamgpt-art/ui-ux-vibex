@@ -99,6 +99,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ currentUser, friends, allUser
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+        style={{fontSize: '16px'}}
       />
 
       {/* Incoming Requests */}

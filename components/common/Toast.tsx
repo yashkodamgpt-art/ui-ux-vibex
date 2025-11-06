@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 
 export interface ToastProps {
@@ -42,7 +43,7 @@ const Toast: React.FC<ToastProps> = ({ id, message, type, onDismiss }) => {
       setIsExiting(true);
       const exitTimer = setTimeout(() => onDismiss(id), 300); // Wait for exit animation
       return () => clearTimeout(exitTimer);
-    }, 3000); // Auto-dismiss after 3 seconds
+    }, 2500); // Auto-dismiss after 2.5 seconds
 
     return () => clearTimeout(timer);
   }, [id, onDismiss]);

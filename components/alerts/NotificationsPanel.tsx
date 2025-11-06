@@ -46,8 +46,8 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
       ) : (
         <div className="text-center py-20">
           <p className="text-5xl mb-4">🔔</p>
-          <h3 className="text-xl font-semibold text-gray-700">No notifications yet</h3>
-          <p className="text-gray-500 mt-2">You'll see updates from friends and sessions here.</p>
+          <h3 className="text-xl font-semibold text-gray-700">All caught up!</h3>
+          <p className="text-gray-500 mt-2">You'll see updates about sessions and friends here.</p>
         </div>
       )}
     </div>
