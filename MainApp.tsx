@@ -15,6 +15,8 @@ import { supabase } from './lib/supabaseClient';
 import BottomNavBar, { type AppTab } from './components/layout/BottomNavBar';
 import PageHeader from './components/layout/PageHeader';
 import SocialPage from './components/social/SocialPage';
+import AlertsPage from './components/alerts/AlertsPage';
+import ProfilePage from './components/profile/ProfilePage';
 
 interface MainAppProps {
   user: User;
@@ -376,11 +378,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   };
 
   const handleTabClick = (tab: AppTab) => {
-    if (tab === 'Profile') {
-      setIsSettingsModalOpen(true);
-    } else {
-      setActiveTab(tab);
-    }
+    setActiveTab(tab);
   };
 
   if (!sessionValid) {
@@ -397,7 +395,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-green-50 flex flex-col">
-      {['Home', 'Social', 'Alerts'].includes(activeTab) && (
+      {['Home', 'Social', 'Alerts', 'Profile'].includes(activeTab) && (
         <PageHeader username={user.profile.username} onLogout={onLogout} />
       )}
       <main className="flex-grow relative">
@@ -456,8 +454,13 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
           </div>
 
           {/* Alerts Tab Content */}
-          <div className={`h-full ${activeTab === 'Alerts' ? 'flex' : 'hidden'} items-center justify-center text-gray-500`}>
-            <p>Alerts page coming soon!</p>
+          <div className={`h-full ${activeTab === 'Alerts' ? '' : 'hidden'}`}>
+            <AlertsPage />
+          </div>
+
+          {/* Profile Tab Content */}
+          <div className={`h-full ${activeTab === 'Profile' ? '' : 'hidden'}`}>
+            <ProfilePage />
           </div>
         
         
