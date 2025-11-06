@@ -167,25 +167,6 @@ export const MOCK_SESSIONS: Session[] = [
     participantRoles: { 'friend-4': 'seeking', 'friend-1': 'offering' }
   },
   {
-    id: 3,
-    title: 'Borrow a T-Square',
-    description: 'Forgot mine for the workshop!',
-    lat: 23.19,
-    lng: 72.682,
-    sessionType: 'borrow',
-    emoji: '🤝',
-    event_time: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // Started 5 mins ago
-    duration: 120,
-    status: 'active',
-    creator_id: 'user-3',
-    participants: ['user-3'],
-    creator: { username: 'student123' },
-    genderFilter: 'neutral',
-    creatorGender: 'male',
-    returnTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-    privacy: 'public',
-  },
-  {
     id: 4,
     title: 'Python Tutoring',
     description: 'Helping with basics of Python for the first-year course.',
@@ -242,6 +223,70 @@ export const MOCK_SESSIONS: Session[] = [
     genderFilter: 'same_gender',
     creatorGender: 'female',
     privacy: 'public',
+  },
+   // --- NEW: MOCK BORROW SESSIONS ---
+  {
+    id: 30,
+    title: 'T-Square for Workshop',
+    description: 'Urgently need a T-Square for the ME workshop, forgot mine at the hostel. Can return it by evening.',
+    lat: 23.1921,
+    lng: 72.6828,
+    sessionType: 'borrow',
+    emoji: '📐',
+    event_time: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // Created 5 mins ago
+    duration: 180,
+    status: 'active',
+    creator_id: 'friend-2', // Bob
+    participants: ['friend-2'],
+    creator: { username: 'Bob' },
+    genderFilter: 'neutral',
+    creatorGender: 'male',
+    returnTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+    privacy: 'public',
+    urgency: 'High',
+    participantRoles: { 'friend-2': 'seeking' }
+  },
+  {
+    id: 31,
+    title: 'Need an umbrella',
+    description: 'Looks like it might rain, anyone have a spare umbrella I could borrow for a few hours?',
+    lat: 23.1905,
+    lng: 72.6865, // Hostel area
+    sessionType: 'borrow',
+    emoji: '☂️',
+    event_time: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // Created 15 mins ago
+    duration: 120,
+    status: 'active',
+    creator_id: 'friend-6', // Fiona
+    participants: ['friend-6', 'friend-1'], // Alice is the giver
+    creator: { username: 'Fiona' },
+    genderFilter: 'neutral',
+    creatorGender: 'female',
+    returnTime: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+    privacy: 'public',
+    urgency: 'Low',
+    participantRoles: { 'friend-6': 'seeking', 'friend-1': 'giver' }
+  },
+  {
+    id: 32,
+    title: 'Laptop Charger (USB-C)',
+    description: 'Left mine at home. Need it for a class in an hour.',
+    lat: 23.1928,
+    lng: 72.6835, // Near library
+    sessionType: 'borrow',
+    emoji: '🔌',
+    event_time: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+    duration: 90,
+    status: 'active',
+    creator_id: MOCK_USER.id,
+    participants: [MOCK_USER.id],
+    creator: { username: MOCK_USER.profile.username },
+    genderFilter: 'neutral',
+    creatorGender: 'male',
+    returnTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+    privacy: 'public',
+    urgency: 'Medium',
+    participantRoles: { [MOCK_USER.id]: 'seeking' }
   },
   ...pastSessions,
 ];

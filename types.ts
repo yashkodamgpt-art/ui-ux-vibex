@@ -81,7 +81,11 @@ export interface Session {
   helpCategory?: 'Academic' | 'Project' | 'Tech' | 'General';
   skillTag?: string; // e.g., "Python"
   expectedOutcome?: string;
-  participantRoles?: { [userId: string]: 'seeking' | 'offering' };
+  // UPDATED: 'giver' role added for Borrow system
+  participantRoles?: { [userId: string]: 'seeking' | 'offering' | 'giver' };
+  
+  // NEW: Field for Borrow system
+  urgency?: 'Low' | 'Medium' | 'High';
 }
 
 /**
@@ -158,7 +162,8 @@ export type NotificationType =
   | 'friend_request_accepted'
   | 'session_join'
   | 'session_ending_soon'
-  | 'tag_add';
+  | 'tag_add'
+  | 'ownership_transfer'; // NEW
 
 /**
  * NEW: Represents a single notification item.

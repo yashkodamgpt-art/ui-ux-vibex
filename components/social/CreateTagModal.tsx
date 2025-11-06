@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Tag } from '../../types';
+import { containsOffensiveContent } from '../../lib/contentFilter'; // NEW
 
 interface CreateTagModalProps {
   isOpen: boolean;
@@ -45,10 +46,19 @@ const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    
     if (!name.trim()) {
       setError('Tag name is required.');
       return;
     }
+    
+    // NEW: Content Filtering
+    if (containsOffensiveContent(name)) {
+        setError('Please use appropriate language for the tag name.');
+        return;
+    }
+
     onSave({ name, color: selectedColor, emoji: selectedEmoji });
   };
 
@@ -82,7 +92,7 @@ const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave
                 onChange={e => setName(e.target.value)} 
                 maxLength={20}
                 required 
-                className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500" 
+                className={`mt-1 block w-full px-4 py-2 bg-gray-50 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 ${error ? 'border-red-500' : 'border-gray-300'}`} 
                 placeholder="e.g., Study Buddies"
               />
           </div>

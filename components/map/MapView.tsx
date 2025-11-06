@@ -20,7 +20,7 @@ interface MapViewProps {
   activeVibe: Session | null;
   onCloseEvent: (eventId: number) => void;
   onExtendEvent: (eventId: number, minutes: number) => void;
-  onJoinVibe: (eventId: number, role?: 'seeking' | 'offering' | 'participant') => void; // NEW: role
+  onJoinVibe: (eventId: number, role?: 'seeking' | 'offering' | 'participant' | 'giver') => void;
   onViewChat: () => void;
   isVisible: boolean;
   activeFilter: CampusZoneName;
@@ -32,7 +32,6 @@ export interface MapViewRef {
 }
 
 // --- HELPER FUNCTIONS ---
-// FIX: Implemented function body to return a formatted string as per its type.
 function formatRemainingTime(minutes: number): string {
     if (minutes < 1) return 'Ending soon';
     if (minutes < 60) return `${Math.round(minutes)}m left`;
@@ -41,7 +40,6 @@ function formatRemainingTime(minutes: number): string {
     if (mins === 0) return `${hours}h left`;
     return `${hours}h ${mins}m left`;
 }
-// FIX: Implemented function body to generate a color from a string. This is needed by generateAvatar.
 const stringToColor = (str: string) => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -54,12 +52,19 @@ const stringToColor = (str: string) => {
     }
     return color;
 };
-// FIX: Implemented function body to return an HTML string for an avatar as per its type.
-const generateAvatar = (participantId: string, username?: string): string => {
-    const name = username || participantId;
-    const initial = name.charAt(0).toUpperCase();
+const generateAvatar = (participantId: string, allFriends: Friend[], user: User, session: Session): string => {
+    let username = 'Unknown';
+    if (participantId === user.id) {
+        username = user.profile.username;
+    } else if (participantId === session.creator_id) {
+        username = session.creator.username;
+    } else {
+        const friend = allFriends.find(f => f.id === participantId);
+        username = friend?.username || 'Guest';
+    }
+    const initial = username.charAt(0).toUpperCase();
     const bgColor = stringToColor(participantId);
-    return `<div title="${name}" style="display: inline-block; width: 28px; height: 28px; border-radius: 50%; background-color: ${bgColor}; color: white; text-align: center; line-height: 28px; font-weight: bold; font-size: 14px; margin-right: -8px; border: 2px solid white;">${initial}</div>`;
+    return `<div title="${username}" style="display: inline-block; width: 28px; height: 28px; border-radius: 50%; background-color: ${bgColor}; color: white; text-align: center; line-height: 28px; font-weight: bold; font-size: 14px; margin-right: -8px; border: 2px solid white;">${initial}</div>`;
 };
 
 
@@ -95,6 +100,8 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
     events.forEach(event => {
         const startTime = new Date(event.event_time).getTime(); const endTime = startTime + event.duration * 60 * 1000; const nowTime = now.getTime();
         if (event.status !== 'active' || nowTime > endTime) return;
+        if (event.sessionType === 'borrow' && nowTime > (startTime + 30 * 60 * 1000) && event.participants.length <= 1) return; // Auto-close borrow requests
+
         const isScheduled = startTime > nowTime; const isActive = !isScheduled; const minutesToStart = (startTime - nowTime) / 60000;
         if (isScheduled && minutesToStart <= 5) return;
 
@@ -107,7 +114,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         const eventMarker = L.marker([event.lat, event.lng], { icon: eventIcon }).addTo(layer);
         
         const popupNode = document.createElement('div'); popupNode.className = "p-1 font-sans";
-        let avatarsHtml = event.participants.map(pId => generateAvatar(pId, pId === event.creator_id ? event.creator.username : undefined)).join('');
+        let avatarsHtml = event.participants.map(pId => generateAvatar(pId, friends, user, event)).join('');
 
         let timeStatusHtml = '';
         if (isActive) { if (event.participants.includes(user.id)) { const minutesToEnd = (endTime - nowTime) / 60000; timeStatusHtml = `<p class="text-sm font-bold text-green-600">${formatRemainingTime(minutesToEnd)}</p>`; } else { timeStatusHtml = `<p class="text-xs text-gray-500">Ends at: ${new Date(endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>`; } } 
@@ -116,14 +123,27 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         const isGenderFiltered = event.genderFilter === 'same_gender';
         let cookieScoreHtml = '';
         if (event.sessionType === 'cookie' && event.skillTag) {
-            const creator = friends.find(f => f.id === event.creator_id) || (event.creator_id === user.id ? user.profile : null);
-            // The logic to get the exact skill score from the creator's profile is complex here.
-            // For mock, we'll just show the total score.
-            const score = creator ? creator.cookieScore : '??';
+            const creatorProfile = event.creator_id === user.id ? user.profile : friends.find(f => f.id === event.creator_id);
+            const score = creatorProfile ? creatorProfile.cookieScore : '??';
             cookieScoreHtml = `<div class="mt-1 text-sm text-yellow-600 font-semibold">Creator's Score (${event.skillTag}): 🍪 ${score}</div>`;
         }
 
-        popupNode.innerHTML = `<h3 class="font-bold text-lg text-purple-800 flex items-center gap-2">${event.title} ${isGenderFiltered ? '<span title="Same gender only">⚧️</span>' : ''}</h3> ${event.description ? `<p class="text-gray-700 my-1">${event.description}</p>` : ''} ${cookieScoreHtml} <div class="flex items-center justify-between mt-2"> <div class="participant-avatars">${avatarsHtml}</div> ${timeStatusHtml} </div>`;
+        let borrowInfoHtml = '';
+        if (event.sessionType === 'borrow') {
+            const urgencyColors = { Low: 'text-green-600', Medium: 'text-yellow-600', High: 'text-red-600' };
+            const urgencyColor = event.urgency ? urgencyColors[event.urgency] : 'text-gray-500';
+            const autoCloseTime = startTime + 30 * 60 * 1000;
+            const minutesToAutoClose = (autoCloseTime - nowTime) / 60000;
+            const returnTimeDate = event.returnTime ? new Date(event.returnTime) : null;
+
+            borrowInfoHtml += `<div class="mt-2 text-sm space-y-1">`;
+            if (event.urgency) { borrowInfoHtml += `<div><span class="font-semibold">Urgency:</span> <span class="font-bold ${urgencyColor}">${event.urgency}</span></div>`; }
+            if (returnTimeDate) { borrowInfoHtml += `<div><span class="font-semibold">Return by:</span> ${returnTimeDate.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>`; }
+            if (minutesToAutoClose > 0 && event.participants.length <= 1) { borrowInfoHtml += `<div class="text-xs text-red-500 font-semibold">Auto-closes in ${Math.round(minutesToAutoClose)}m</div>`; }
+            borrowInfoHtml += `</div>`;
+        }
+
+        popupNode.innerHTML = `<h3 class="font-bold text-lg text-purple-800 flex items-center gap-2">${event.title} ${isGenderFiltered ? '<span title="Same gender only">⚧️</span>' : ''}</h3> ${event.description ? `<p class="text-gray-700 my-1">${event.description}</p>` : ''} ${cookieScoreHtml} ${borrowInfoHtml} <div class="flex items-center justify-between mt-2"> <div class="participant-avatars">${avatarsHtml}</div> ${timeStatusHtml} </div>`;
         
         const controlsContainer = document.createElement('div');
         controlsContainer.className = "mt-2 pt-2 border-t border-gray-200 flex flex-wrap items-center gap-2";
@@ -143,7 +163,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
             const isGenderMismatch = isGenderFiltered && user.profile.gender !== event.creatorGender;
             const cannotJoin = !!activeVibe || isGenderMismatch;
 
-            const createJoinButton = (text: string, role: 'seeking' | 'offering' | 'participant', primary = true) => {
+            const createJoinButton = (text: string, role: 'seeking' | 'offering' | 'participant' | 'giver', primary = true) => {
                 const button = document.createElement('button');
                 button.className = `w-full text-center font-bold px-3 py-2 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed ${primary ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`;
                 button.disabled = cannotJoin;
@@ -154,7 +174,9 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
                 return button;
             };
 
-            if (event.sessionType === 'seek') {
+            if (event.sessionType === 'borrow') {
+                controlsContainer.appendChild(createJoinButton('Offer Item', 'giver'));
+            } else if (event.sessionType === 'seek') {
                 controlsContainer.appendChild(createJoinButton('Offer Help', 'offering'));
                 controlsContainer.appendChild(createJoinButton('I also need help', 'seeking', false));
             } else {

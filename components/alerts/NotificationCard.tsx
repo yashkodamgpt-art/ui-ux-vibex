@@ -40,6 +40,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification, onMar
         return { icon: '💌', text: <strong>{user?.username}</strong>, message: `invited you to: "${session?.title}"`, actions: ['view'] };
       case 'tag_add':
         return { icon: '🏷️', text: <strong>{user?.username}</strong>, message: `added you to the tag: "${tag?.name}"` };
+      case 'ownership_transfer':
+        return { icon: '👑', text: 'You are now the leader', message: `of the session: "${session?.title}"`, actions: ['view'] };
       default:
         return { icon: '🔔', text: 'New notification' };
     }

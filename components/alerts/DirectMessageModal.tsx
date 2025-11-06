@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Conversation, User, Friend, DirectMessage } from '../../types';
+import { containsOffensiveContent } from '../../lib/contentFilter'; // NEW
 
 interface DirectMessageModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ const MAX_CHARS = 100;
 
 const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose, conversation, currentUser, friend, onSendMessage }) => {
   const [messageText, setMessageText] = useState('');
+  const [inputError, setInputError] = useState(false); // NEW
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -30,6 +32,12 @@ const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (messageText.trim()) {
+      // NEW: Content Filtering
+      if (containsOffensiveContent(messageText)) {
+          setInputError(true);
+          setTimeout(() => setInputError(false), 500);
+          return;
+      }
       onSendMessage(messageText);
       setMessageText('');
     }
@@ -85,7 +93,7 @@ const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose
                   onChange={e => setMessageText(e.target.value)}
                   maxLength={MAX_CHARS}
                   placeholder="Type a message..."
-                  className="w-full px-4 py-3 bg-gray-100 border border-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className={`w-full px-4 py-3 bg-gray-100 border border-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 ${inputError ? 'shake-error border-red-500' : ''}`}
               />
               {messageText.length > 50 && (
                 <span className="absolute right-4 bottom-3 text-xs text-gray-500">
