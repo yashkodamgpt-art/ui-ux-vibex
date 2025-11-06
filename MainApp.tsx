@@ -11,6 +11,8 @@ import ProfileModal from './components/profile/ProfileModal';
 import { supabase } from './lib/supabaseClient';
 import BottomNavBar, { type AppTab } from './components/layout/BottomNavBar';
 import PageHeader from './components/layout/PageHeader';
+import HomeHeader from './components/layout/HomeHeader';
+import ProfileQuickView from './components/layout/ProfileQuickView';
 import SocialPage from './components/social/SocialPage';
 import AlertsPage from './components/alerts/AlertsPage';
 import ProfilePage from './components/profile/ProfilePage';
@@ -40,6 +42,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   const [chatMessages, setChatMessages] = useState<SessionMessage[]>([]);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isProfileQuickViewOpen, setIsProfileQuickViewOpen] = useState(false);
   const [viewedUser, setViewedUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mapViewRef = useRef<MapViewRef>(null);
@@ -189,8 +192,10 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-green-50 flex flex-col">
-      {/* Render PageHeader on all tabs except Home */}
-      {activeTab !== 'Home' && (
+      {/* Conditionally render header based on active tab */}
+      {activeTab === 'Home' ? (
+        <HomeHeader user={user} onOpenProfile={() => setIsProfileQuickViewOpen(true)} />
+      ) : (
         <PageHeader username={user.profile.username} onLogout={onLogout} />
       )}
       
@@ -269,7 +274,15 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
                 onViewProfile={handleOpenProfile}
             />
         )}
-        {/* We keep SettingsModal for now, although it will be removed later */}
+        <ProfileQuickView
+            isOpen={isProfileQuickViewOpen}
+            onClose={() => setIsProfileQuickViewOpen(false)}
+            user={user}
+            onEditProfile={() => {
+              setIsProfileQuickViewOpen(false);
+              setIsSettingsModalOpen(true);
+            }}
+        />
         <SettingsModal 
             isOpen={isSettingsModalOpen}
             onClose={() => setIsSettingsModalOpen(false)}
