@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Session, SessionType, Tag, Friend, GenderFilter, User } from '../../types';
 import { containsOffensiveContent } from '../../lib/contentFilter'; // NEW
@@ -204,4 +205,4 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
     );
 };
 
-export default CreateEventModal;
+export default React.memo(CreateEventModal);

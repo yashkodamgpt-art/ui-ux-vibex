@@ -1,3 +1,4 @@
+
 import type { User, Session, Friend, Tag, FriendRequest, DirectMessage, Conversation, Notification, Vouch } from '../types';
 
 // --- NEW MOCK VOUCH HISTORY ---

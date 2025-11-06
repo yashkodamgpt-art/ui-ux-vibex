@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { User, Friend, Tag, FriendRequest } from '../../types';
 import { MOCK_USERS_DATABASE } from '../../lib/mockData';

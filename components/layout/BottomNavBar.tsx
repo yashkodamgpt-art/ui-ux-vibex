@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 // Define the icons we'll use.
@@ -61,4 +62,4 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabClick }) =>
   );
 };
 
-export default BottomNavBar;
+export default React.memo(BottomNavBar);

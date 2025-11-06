@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export type CampusZoneName = "All" | "Library" | "Hostel Area" | "Sports Complex" | "Mess 1" | "Academic Block";
@@ -39,4 +40,4 @@ const FilterChipBar: React.FC<FilterChipBarProps> = ({ filters, activeFilter, on
   );
 };
 
-export default FilterChipBar;
+export default React.memo(FilterChipBar);

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -22,6 +23,23 @@
      onerror="console.error('Failed to load Leaflet library')"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    /* --- NEW: CSS Variables for Theming (Dark Mode Prep) --- */
+    :root {
+      --color-bg-primary: #ffffff;      /* white */
+      --color-bg-secondary: #f9fafb;     /* gray-50 */
+      --color-bg-tertiary: #f3f4f6;      /* gray-100 */
+
+      --color-text-primary: #1f2937;     /* gray-800 */
+      --color-text-secondary: #6b7280;   /* gray-500 */
+      --color-text-on-accent: #ffffff;   /* white */
+
+      --color-accent-primary: #16a34a; /* green-600 */
+      --color-accent-secondary: #a855f7; /* purple-500 */
+      
+      --color-border: #e5e7eb;           /* gray-200 */
+      --color-error: #ef4444;            /* red-500 */
+    }
+
     .event-marker {
       background-color: rgba(168, 85, 247, 0.5); /* purple-500 with 50% opacity */
       border: 2px solid rgba(147, 51, 234, 0.8); /* purple-600 with 80% opacity */

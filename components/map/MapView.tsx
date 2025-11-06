@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import type { Session, User, Friend } from '../../types';
 import type { CampusZoneName } from '../filters/FilterChipBar';
@@ -132,7 +133,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
 
     layer.clearLayers();
     
-    events.forEach(event => {
+    events.slice(0, 50).forEach(event => { // Performance: Render max 50 markers
         const startTime = new Date(event.event_time).getTime(); const endTime = startTime + event.duration * 60 * 1000; const nowTime = now.getTime();
         if (event.status !== 'active' || nowTime > endTime) return;
         if (event.sessionType === 'borrow' && nowTime > (startTime + 30 * 60 * 1000) && event.participants.length <= 1) return; // Auto-close borrow requests
@@ -237,4 +238,4 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
   );
 });
 
-export default MapView;
+export default React.memo(MapView);

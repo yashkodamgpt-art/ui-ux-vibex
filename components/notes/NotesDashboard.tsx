@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 // FIX: The 'Note' type has been removed. This component is repurposed to show past Sessions.
 import type { User, Session } from '../../types';

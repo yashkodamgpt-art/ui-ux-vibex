@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { Friend } from '../../types';
 
@@ -85,4 +86,4 @@ const FriendCard: React.FC<FriendCardProps> = ({ friend, onViewProfile, onRemove
   );
 };
 
-export default FriendCard;
+export default React.memo(FriendCard);

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import type { User, Session, SessionMessage, Friend } from '../../types';
 import { supabase } from '../../lib/supabaseClient';
@@ -101,7 +102,7 @@ const VibeChatPanel: React.FC<VibeChatPanelProps> = ({ isOpen, onClose, vibe, me
             </div>
             <div className="flex-shrink-0 pt-2">
                 <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
-                    {quickReplies.map(reply => ( <button key={reply} onClick={() => onSendMessage(reply)} className="px-4 py-2 text-sm font-medium rounded-full bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors">{reply}</button>))}
+                    {quickReplies.map(reply => ( <button key={reply} onClick={() => setMessageText(reply)} className="px-4 py-2 text-sm font-medium rounded-full bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors">{reply}</button>))}
                 </div>
                  <form onSubmit={handleFormSubmit} className="flex items-center gap-2 p-2">
                     <div className="relative w-full">

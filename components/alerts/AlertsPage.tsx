@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { User, Conversation, DirectMessage, Friend, Notification } from '../../types';
 import { MOCK_CONVERSATIONS, MOCK_FRIENDS } from '../../lib/mockData';

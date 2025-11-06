@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { Session } from '../../types';
 
@@ -17,7 +18,7 @@ const typeStyles: Record<Session['sessionType'], { bg: string; text: string }> =
 };
 
 const formatRemainingTime = (endTime: Date): string => {
-  const now = new Date();
+  const now = new Date(Date.now());
   const diffMinutes = Math.round((endTime.getTime() - now.getTime()) / 60000);
   if (diffMinutes < 1) return 'Ending soon';
   if (diffMinutes < 60) return `${diffMinutes}m`;
@@ -25,14 +26,12 @@ const formatRemainingTime = (endTime: Date): string => {
 };
 
 const ActiveSessionIndicator: React.FC<ActiveSessionIndicatorProps> = ({ activeSession, otherSessionsCount, onTap, onTapPlus, onLongPress }) => {
-  // FIX: Switched to a lazy initializer for useState to resolve an "Expected 1 arguments, but got 0" error,
-  // which may be caused by a tooling issue with direct `new Date()` initialization.
-  const [now, setNow] = useState(() => new Date());
-  // FIX: Corrected useRef type for browser environment's setTimeout return value (number).
+  // Fix: Resolved "Expected 1 arguments, but got 0" error by explicitly passing Date.now() to the Date constructor. This appears to be a tooling issue with parameter-less new Date() calls.
+  const [now, setNow] = useState(() => new Date(Date.now()));
   const longPressTimer = useRef<number>();
 
   useEffect(() => {
-    const timerId = setInterval(() => setNow(new Date()), 60000);
+    const timerId = setInterval(() => setNow(new Date(Date.now())), 60000);
     return () => clearInterval(timerId);
   }, []);
 

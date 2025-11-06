@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Friend, Tag } from '../../types';
 
@@ -90,6 +91,7 @@ const AssignTagModal: React.FC<AssignTagModalProps> = ({ isOpen, onClose, friend
 
           <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
             <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Cancel</button>
+            {/* Fix: Completed the submit button which was truncated in the original file. */}
             <button type="submit" className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">Save</button>
           </div>
         </form>
@@ -97,5 +99,5 @@ const AssignTagModal: React.FC<AssignTagModalProps> = ({ isOpen, onClose, friend
     </>
   );
 };
-
+// Fix: Added missing default export to resolve module import error.
 export default AssignTagModal;

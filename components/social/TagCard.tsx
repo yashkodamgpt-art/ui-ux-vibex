@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { Tag, Friend } from '../../types';
 import FriendCard from './FriendCard'; // We can reuse the FriendCard for a consistent look
@@ -69,4 +70,4 @@ const TagCard: React.FC<TagCardProps> = ({ tag, allFriends, onViewProfile, onEdi
   );
 };
 
-export default TagCard;
+export default React.memo(TagCard);

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 // FIX: The 'Note' type has been removed. This component is repurposed to display a Session from history.
 import type { Session } from '../../types';

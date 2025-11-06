@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { User, Profile, Session } from '../../types';
 import CookieScoreDashboard from './CookieScoreDashboard';
