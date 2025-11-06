@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { User, Session, SessionMessage, Profile } from './types';
+import type { User, Session, SessionMessage, Profile, SessionType } from './types';
 import MapView, { type MapViewRef } from './components/map/MapView';
 import CreateEventModal from './components/events/CreateEventModal';
 import MyLocationButton from './components/common/MyLocationButton';
@@ -16,6 +16,7 @@ import ProfileQuickView from './components/layout/ProfileQuickView';
 import SocialPage from './components/social/SocialPage';
 import AlertsPage from './components/alerts/AlertsPage';
 import ProfilePage from './components/profile/ProfilePage';
+import CreateSessionMenu from './components/sessions/CreateSessionMenu';
 
 // --- NEW MOCK DATA IMPORT ---
 import { MOCK_SESSIONS } from './lib/mockData';
@@ -28,16 +29,17 @@ interface MainAppProps {
 
 const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) => {
   const [activeTab, setActiveTab] = useState<AppTab>('Home');
-  const [isCreateMode, setIsCreateMode] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newEventCoords, setNewEventCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  
-  // --- MOCK DATA STATE ---
-  // We now load our mock sessions directly into state.
   const [sessions, setSessions] = useState<Session[]>(MOCK_SESSIONS);
   const [activeVibe, setActiveVibe] = useState<Session | null>(null);
   
+  // Create Flow State
+  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
+  const [isPlacementMode, setIsPlacementMode] = useState(false);
+  const [selectedSessionType, setSelectedSessionType] = useState<SessionType | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newEventCoords, setNewEventCoords] = useState<{ lat: number; lng: number } | null>(null);
+
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [chatMessages, setChatMessages] = useState<SessionMessage[]>([]);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -54,37 +56,37 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
 
   // --- ALL SUPABASE LOGIC IS NOW COMMENTED OUT ---
 
-  // useEffect(() => {
-  //   if (!sessionValid) return;
-  //   const fetchEvents = async () => { ... };
-  //   fetchEvents();
-  //   const eventsSubscription = supabase.channel(...)
-  //   return () => { supabase.removeChannel(eventsSubscription); };
-  // }, [sessionValid, onLogout]);
-  
-  // useEffect(() => {
-  //   if (!sessionValid) return;
-  //   let messagesSubscription: any = null;
-  //   if (isChatVisible && activeVibe) {
-  //       const fetchMessages = async () => { ... };
-  //       fetchMessages();
-  //       messagesSubscription = supabase.channel(...)
-  //   }
-  //   return () => {
-  //       if(messagesSubscription) {
-  //           supabase.removeChannel(messagesSubscription);
-  //       }
-  //   };
-  // }, [isChatVisible, activeVibe, sessionValid, onLogout]);
+  const handleCancelCreate = useCallback(() => {
+    setIsCreateMenuOpen(false);
+    setIsPlacementMode(false);
+    setSelectedSessionType(null);
+    setIsCreateModalOpen(false);
+    setNewEventCoords(null);
+  }, []);
 
-  const handleMapClickInCreateMode = (coords: { lat: number; lng: number }) => {
+  const handleCreateButtonClick = () => {
+    if (isCreateMenuOpen || isPlacementMode) {
+        handleCancelCreate();
+    } else {
+        setIsCreateMenuOpen(true);
+    }
+  };
+  
+  const handleSelectSessionType = (type: SessionType) => {
+    setSelectedSessionType(type);
+    setIsPlacementMode(true);
+    setIsCreateMenuOpen(false);
+  };
+
+  const handleMapPlacement = (coords: { lat: number; lng: number }) => {
     if (activeVibe) {
         alert("You are already in a Vibe. Leave or close your current Vibe to create a new one.");
-        setIsCreateMode(false);
+        handleCancelCreate();
         return;
     }
     setNewEventCoords(coords);
     setIsCreateModalOpen(true);
+    setIsPlacementMode(false);
   };
 
   const handleCreateEvent = async (eventData: Omit<Session, 'id' | 'creator' | 'creator_id' | 'lat' | 'lng' | 'participants' | 'creator'>) => {
@@ -102,9 +104,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
     };
     setSessions(prevSessions => [...prevSessions, newSession]);
     setActiveVibe(newSession);
-    setIsCreateModalOpen(false);
-    setNewEventCoords(null);
-    setIsCreateMode(false);
+    handleCancelCreate();
   };
   
   const handleRecenterMap = () => {
@@ -211,10 +211,10 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
             <MapView 
               ref={mapViewRef}
               isVisible={activeTab === 'Home'}
-              isCreateMode={isCreateMode}
+              isCreateMode={isPlacementMode}
               userLocation={userLocation}
               onSetUserLocation={setUserLocation}
-              onMapClick={handleMapClickInCreateMode}
+              onMapClick={handleMapPlacement}
               events={sessions} // Pass 'sessions' state
               user={user}
               activeVibe={activeVibe}
@@ -228,9 +228,13 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
                 onClick={handleRecenterMap} 
                 disabled={!userLocation} 
               />
+              <CreateSessionMenu 
+                isOpen={isCreateMenuOpen}
+                onSelectType={handleSelectSessionType}
+              />
               <CreateEventButton 
-                onClick={() => setIsCreateMode(!isCreateMode)} 
-                isActive={isCreateMode} 
+                onClick={handleCreateButtonClick} 
+                isActive={isCreateMenuOpen || isPlacementMode} 
               />
             </div>
           </div>
@@ -250,18 +254,13 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
             <ProfilePage />
           </div>
         
-        
-        {newEventCoords && (
-          <CreateEventModal 
-            isOpen={isCreateModalOpen}
-            onClose={() => {
-              setIsCreateModalOpen(false);
-              setNewEventCoords(null);
-              setIsCreateMode(false);
-            }}
-            onSubmit={handleCreateEvent}
-          />
-        )}
+        <CreateEventModal 
+          isOpen={isCreateModalOpen}
+          onClose={handleCancelCreate}
+          onSubmit={handleCreateEvent}
+          sessionType={selectedSessionType}
+        />
+
         {activeVibe && (
             <VibeChatPanel
                 isOpen={isChatVisible}
