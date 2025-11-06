@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import type { User, Conversation, DirectMessage, Friend, Notification } from '../../types';
 import { MOCK_CONVERSATIONS, MOCK_FRIENDS } from '../../lib/mockData';
 import MessagesPanel from './MessagesPanel';
 import NotificationsPanel from './NotificationsPanel';
 import DirectMessageModal from './DirectMessageModal';
+import { useSwipeGesture } from '../../lib/useSwipeGesture';
 
 type AlertsTab = 'Messages' | 'Notifications';
 
@@ -53,24 +53,15 @@ const AlertsPage: React.FC<AlertsPageProps> = ({
       return MOCK_FRIENDS.find(f => f.id === friendId);
   }
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'Messages':
-        return <MessagesPanel conversations={conversations} currentUser={user} friends={MOCK_FRIENDS} onOpenConversation={handleOpenConversation} />;
-      case 'Notifications':
-        return (
-          <NotificationsPanel
-            notifications={notifications}
-            onMarkAsRead={onMarkAsRead}
-            onMarkAllAsRead={onMarkAllAsRead}
-            onDelete={onDeleteNotification}
-            onAction={onNotificationAction}
-          />
-        );
-      default:
-        return null;
-    }
+  const handleSwipeLeft = () => {
+    if (activeTab === 'Messages') setActiveTab('Notifications');
   };
+
+  const handleSwipeRight = () => {
+    if (activeTab === 'Notifications') setActiveTab('Messages');
+  };
+
+  const swipeHandlers = useSwipeGesture(handleSwipeLeft, handleSwipeRight);
 
   return (
     <>
@@ -79,20 +70,37 @@ const AlertsPage: React.FC<AlertsPageProps> = ({
           <nav className="flex justify-around -mb-px">
             <button
               onClick={() => setActiveTab('Messages')}
-              className={`w-full py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'Messages' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+              className={`w-full py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'Messages' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
             >
               Messages
             </button>
             <button
               onClick={() => setActiveTab('Notifications')}
-              className={`w-full py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'Notifications' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+              className={`w-full py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'Notifications' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
             >
               Notifications
             </button>
           </nav>
         </div>
-        <div className="flex-grow overflow-y-auto bg-gray-50">
-          {renderContent()}
+        <div 
+          className="flex-grow overflow-hidden relative"
+          {...swipeHandlers}
+        >
+          <div className="h-full flex transition-transform duration-300 ease-out"
+               style={{ transform: `translateX(${activeTab === 'Messages' ? '0%' : '-100%'})` }}>
+            <div className="min-w-full h-full overflow-y-auto bg-gray-50">
+               <MessagesPanel conversations={conversations} currentUser={user} friends={MOCK_FRIENDS} onOpenConversation={handleOpenConversation} />
+            </div>
+            <div className="min-w-full h-full overflow-y-auto bg-gray-50">
+              <NotificationsPanel
+                notifications={notifications}
+                onMarkAsRead={onMarkAsRead}
+                onMarkAllAsRead={onMarkAllAsRead}
+                onDelete={onDeleteNotification}
+                onAction={onNotificationAction}
+              />
+            </div>
+          </div>
         </div>
       </div>
       

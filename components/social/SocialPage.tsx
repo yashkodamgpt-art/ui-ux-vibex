@@ -4,6 +4,7 @@ import { MOCK_USERS_DATABASE } from '../../lib/mockData';
 import FriendsPanel from './FriendsPanel';
 import TagsPanel from './TagsPanel';
 import SearchPanel from './SearchPanel';
+import { useSwipeGesture } from '../../lib/useSwipeGesture';
 
 type SocialTab = 'Friends' | 'Search' | 'Tags';
 
@@ -39,31 +40,49 @@ const SocialPage: React.FC<SocialPageProps> = (props) => {
     return () => clearTimeout(timer);
   }, []);
 
-  const renderContent = () => {
-    switch(activeTab) {
-      case 'Friends':
-        return <FriendsPanel isLoading={isLoading} friends={props.friends} tags={props.tags} onViewProfile={props.onViewFriendProfile} onRemoveFriend={props.onRemoveFriend} onAssignToTags={props.onOpenAssignTagModal} />;
-      case 'Search':
-        return <SearchPanel currentUser={props.user} friends={props.friends} allUsers={MOCK_USERS_DATABASE} friendRequests={props.friendRequests} onSendRequest={props.onSendRequest} onAcceptRequest={props.onAcceptRequest} onRejectRequest={props.onRejectRequest} onViewProfile={props.onViewFriendProfile} />;
-      case 'Tags':
-        return <TagsPanel isLoading={isLoading} tags={props.tags} friends={props.friends} onViewProfile={props.onViewFriendProfile} onCreateTag={props.onOpenCreateTagModal} onEditTag={props.onOpenEditTagModal} onDeleteTag={props.onDeleteTag} />;
-      default:
-        return null;
+  const tabs: SocialTab[] = ['Friends', 'Search', 'Tags'];
+  const currentIndex = tabs.indexOf(activeTab);
+
+  const handleSwipeLeft = () => {
+    if (currentIndex < tabs.length - 1) {
+      setActiveTab(tabs[currentIndex + 1]);
     }
-  }
+  };
+
+  const handleSwipeRight = () => {
+    if (currentIndex > 0) {
+      setActiveTab(tabs[currentIndex - 1]);
+    }
+  };
+
+  const swipeHandlers = useSwipeGesture(handleSwipeLeft, handleSwipeRight);
 
   return (
     <div className="h-full flex flex-col">
       <div className="flex-shrink-0 border-b border-gray-200 px-4">
           <nav className="flex justify-around -mb-px">
-              <button onClick={() => setActiveTab('Friends')} className={`w-full py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'Friends' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Friends ({props.friends.length})</button>
-              <button onClick={() => setActiveTab('Search')} className={`w-full py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'Search' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Search</button>
-              <button onClick={() => setActiveTab('Tags')} className={`w-full py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'Tags' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Tags ({props.tags.length})</button>
+              <button onClick={() => setActiveTab('Friends')} className={`w-full py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'Friends' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Friends ({props.friends.length})</button>
+              <button onClick={() => setActiveTab('Search')} className={`w-full py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'Search' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Search</button>
+              <button onClick={() => setActiveTab('Tags')} className={`w-full py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'Tags' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Tags ({props.tags.length})</button>
           </nav>
       </div>
       
-      <div className="flex-grow overflow-y-auto bg-gray-50">
-          {renderContent()}
+      <div 
+        className="flex-grow overflow-hidden relative"
+        {...swipeHandlers}
+      >
+        <div className="h-full flex transition-transform duration-300 ease-out"
+             style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+          <div className="min-w-full h-full overflow-y-auto bg-gray-50">
+            <FriendsPanel isLoading={isLoading} friends={props.friends} tags={props.tags} onViewProfile={props.onViewFriendProfile} onRemoveFriend={props.onRemoveFriend} onAssignToTags={props.onOpenAssignTagModal} />
+          </div>
+          <div className="min-w-full h-full overflow-y-auto bg-gray-50">
+            <SearchPanel currentUser={props.user} friends={props.friends} allUsers={MOCK_USERS_DATABASE} friendRequests={props.friendRequests} onSendRequest={props.onSendRequest} onAcceptRequest={props.onAcceptRequest} onRejectRequest={props.onRejectRequest} onViewProfile={props.onViewFriendProfile} />
+          </div>
+          <div className="min-w-full h-full overflow-y-auto bg-gray-50">
+            <TagsPanel isLoading={isLoading} tags={props.tags} friends={props.friends} onViewProfile={props.onViewFriendProfile} onCreateTag={props.onOpenCreateTagModal} onEditTag={props.onOpenEditTagModal} onDeleteTag={props.onDeleteTag} />
+          </div>
+        </div>
       </div>
     </div>
   );

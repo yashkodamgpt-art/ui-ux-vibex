@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { Session } from '../../types';
 
@@ -17,8 +18,7 @@ const typeStyles: Record<Session['sessionType'], { bg: string; text: string }> =
 };
 
 const formatRemainingTime = (endTime: Date): string => {
-  // FIX: Pass Date.now() to new Date() to satisfy linter/compiler.
-  const now = new Date(Date.now());
+  const now = new Date();
   const diffMinutes = Math.round((endTime.getTime() - now.getTime()) / 60000);
   if (diffMinutes < 1) return 'Ending soon';
   if (diffMinutes < 60) return `${diffMinutes}m`;
@@ -26,13 +26,12 @@ const formatRemainingTime = (endTime: Date): string => {
 };
 
 const ActiveSessionIndicator: React.FC<ActiveSessionIndicatorProps> = ({ activeSession, otherSessionsCount, onTap, onTapPlus, onLongPress }) => {
-  // FIX: Resolved "Expected 1 arguments, but got 0" error by explicitly passing Date.now() to the Date constructor. This appears to be a tooling issue with parameter-less new Date() calls.
-  const [now, setNow] = useState(() => new Date(Date.now()));
-  const longPressTimer = useRef<number>();
+  const [now, setNow] = useState(() => new Date());
+  // FIX: Initialize useRef with null and update type to handle null value.
+  const longPressTimer = useRef<number | null>(null);
 
   useEffect(() => {
-    // Fix: Pass Date.now() to new Date() to satisfy linter/compiler.
-    const timerId = setInterval(() => setNow(new Date(Date.now())), 60000);
+    const timerId = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(timerId);
   }, []);
 
@@ -43,7 +42,8 @@ const ActiveSessionIndicator: React.FC<ActiveSessionIndicatorProps> = ({ activeS
   };
 
   const handleMouseUp = () => {
-    if (longPressTimer.current) {
+    // FIX: Check against null to avoid issues if timer ID is 0, and ensure type safety.
+    if (longPressTimer.current !== null) {
       clearTimeout(longPressTimer.current);
     }
   };

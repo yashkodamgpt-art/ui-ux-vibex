@@ -47,6 +47,14 @@
       animation: pulse 2s infinite;
       position: relative; /* Needed for positioning child elements */
     }
+    
+    /* NEW: Green circle for active sessions */
+    .event-marker.active {
+      background-color: rgba(34, 197, 94, 0.5); /* green-500 with 50% opacity */
+      border: 2px solid rgba(22, 163, 74, 0.8); /* green-600 with 80% opacity */
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+      animation-name: pulse-green;
+    }
 
     /* NEW: Better distinction for private session markers */
     .event-marker.private-marker {
@@ -149,6 +157,22 @@
       100% {
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(147, 51, 234, 0);
+      }
+    }
+
+    /* NEW: Green pulse animation */
+    @keyframes pulse-green {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(22, 163, 74, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
       }
     }
 
