@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { User, Conversation, DirectMessage, Friend, Notification } from '../../types';
-import { MOCK_CONVERSATIONS, MOCK_FRIENDS } from '../../lib/mockData';
 import MessagesPanel from './MessagesPanel';
 import NotificationsPanel from './NotificationsPanel';
 import DirectMessageModal from './DirectMessageModal';
 import { useSwipeGesture } from '../../lib/useSwipeGesture';
+import * as supabaseService from '../../lib/supabaseService';
+import * as subscriptions from '../../lib/subscriptions';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 type AlertsTab = 'Messages' | 'Notifications';
 
 interface AlertsPageProps {
   user: User;
+  friends: Friend[]; // Receive friends from parent
   notifications: Notification[];
   onMarkAsRead: (notificationId: string) => void;
   onMarkAllAsRead: () => void;
@@ -19,6 +22,7 @@ interface AlertsPageProps {
 
 const AlertsPage: React.FC<AlertsPageProps> = ({ 
     user, 
+    friends,
     notifications, 
     onMarkAsRead, 
     onMarkAllAsRead, 
@@ -26,9 +30,58 @@ const AlertsPage: React.FC<AlertsPageProps> = ({
     onNotificationAction 
 }) => {
   const [activeTab, setActiveTab] = useState<AlertsTab>('Messages');
-  const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch initial conversations and subscribe to DMs
+  useEffect(() => {
+    const fetchAndSubscribe = async () => {
+        setIsLoading(true);
+        const { data: initialConvos, error } = await supabaseService.fetchConversationsForUser(user.id);
+
+        if (error || !initialConvos) {
+            console.error("Could not fetch conversations");
+            setIsLoading(false);
+            return;
+        }
+
+        const conversationsWithMessages = await Promise.all(
+            initialConvos.map(async (convo: any) => {
+                const { data: messages } = await supabaseService.fetchMessagesForConversation(convo.id);
+                return { ...convo, messages: messages || [], unreadCount: 0 };
+            })
+        );
+        
+        setConversations(conversationsWithMessages);
+        setIsLoading(false);
+
+        const channels: RealtimeChannel[] = [];
+        conversationsWithMessages.forEach(convo => {
+            const channel = subscriptions.subscribeToDirectMessages(convo.id, (payload) => {
+                const newMessage = payload.new as DirectMessage;
+                setConversations(prevConvos => {
+                    return prevConvos.map(c => {
+                        if (c.id === newMessage.conversation_id) {
+                            // Avoid adding duplicate messages if optimistic update is used
+                            if (c.messages.some(m => m.id === newMessage.id)) return c;
+                            return { ...c, messages: [...c.messages, newMessage] };
+                        }
+                        return c;
+                    });
+                });
+            });
+            channels.push(channel);
+        });
+
+        return () => {
+            channels.forEach(channel => channel.unsubscribe());
+        };
+    };
+
+    fetchAndSubscribe();
+  }, [user.id]);
+  
   const handleOpenConversation = (conversationId: string) => {
     const conversation = conversations.find(c => c.id === conversationId);
     if (conversation) {
@@ -41,17 +94,24 @@ const AlertsPage: React.FC<AlertsPageProps> = ({
     setActiveConversation(null);
   };
   
-  const handleSendMessage = (text: string) => {
+  const handleSendMessage = async (text: string) => {
     if (!activeConversation) return;
-    const newMessage: DirectMessage = { id: `dm-${Date.now()}`, senderId: user.id, text, timestamp: new Date().toISOString() };
+
+    // Optimistic update
+    const tempId = `temp-${Date.now()}`;
+    const newMessage: DirectMessage = { id: tempId, senderId: user.id, text, timestamp: new Date().toISOString(), conversation_id: activeConversation.id };
     setConversations(prev => prev.map(c => c.id === activeConversation.id ? { ...c, messages: [...c.messages, newMessage] } : c));
     setActiveConversation(prev => prev ? { ...prev, messages: [...prev.messages, newMessage] } : null);
+
+    // Send to backend
+    await supabaseService.sendDirectMessage(activeConversation.id, user.id, text);
+    // The subscription will handle receiving the confirmed message from the DB
   };
 
-  const findFriendForConversation = (conversation: Conversation): Friend | undefined => {
+  const findFriendForConversation = useCallback((conversation: Conversation): Friend | undefined => {
       const friendId = conversation.participantIds.find(id => id !== user.id);
-      return MOCK_FRIENDS.find(f => f.id === friendId);
-  }
+      return friends.find(f => f.id === friendId);
+  }, [user.id, friends]);
 
   const handleSwipeLeft = () => {
     if (activeTab === 'Messages') setActiveTab('Notifications');
@@ -89,7 +149,7 @@ const AlertsPage: React.FC<AlertsPageProps> = ({
           <div className="h-full flex transition-transform duration-300 ease-out"
                style={{ transform: `translateX(${activeTab === 'Messages' ? '0%' : '-100%'})` }}>
             <div className="min-w-full h-full overflow-y-auto bg-gray-50">
-               <MessagesPanel conversations={conversations} currentUser={user} friends={MOCK_FRIENDS} onOpenConversation={handleOpenConversation} />
+               <MessagesPanel conversations={conversations} currentUser={user} friends={friends} onOpenConversation={handleOpenConversation} isLoading={isLoading} />
             </div>
             <div className="min-w-full h-full overflow-y-auto bg-gray-50">
               <NotificationsPanel

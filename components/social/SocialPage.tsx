@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import type { User, Friend, Tag, FriendRequest } from '../../types';
-import { MOCK_USERS_DATABASE } from '../../lib/mockData';
 import FriendsPanel from './FriendsPanel';
 import TagsPanel from './TagsPanel';
 import SearchPanel from './SearchPanel';
@@ -77,7 +76,7 @@ const SocialPage: React.FC<SocialPageProps> = (props) => {
             <FriendsPanel isLoading={isLoading} friends={props.friends} tags={props.tags} onViewProfile={props.onViewFriendProfile} onRemoveFriend={props.onRemoveFriend} onAssignToTags={props.onOpenAssignTagModal} />
           </div>
           <div className="min-w-full h-full overflow-y-auto bg-gray-50">
-            <SearchPanel currentUser={props.user} friends={props.friends} allUsers={MOCK_USERS_DATABASE} friendRequests={props.friendRequests} onSendRequest={props.onSendRequest} onAcceptRequest={props.onAcceptRequest} onRejectRequest={props.onRejectRequest} onViewProfile={props.onViewFriendProfile} />
+            <SearchPanel currentUser={props.user} friends={props.friends} friendRequests={props.friendRequests} onSendRequest={props.onSendRequest} onAcceptRequest={props.onAcceptRequest} onRejectRequest={props.onRejectRequest} onViewProfile={props.onViewFriendProfile} />
           </div>
           <div className="min-w-full h-full overflow-y-auto bg-gray-50">
             <TagsPanel isLoading={isLoading} tags={props.tags} friends={props.friends} onViewProfile={props.onViewFriendProfile} onCreateTag={props.onOpenCreateTagModal} onEditTag={props.onOpenEditTagModal} onDeleteTag={props.onDeleteTag} />

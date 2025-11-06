@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { User, Profile, Session } from '../../types';
 import CookieScoreDashboard from './CookieScoreDashboard';
 import SessionHistory from './SessionHistory';
+import * as supabaseService from '../../lib/supabaseService';
 
 // Data for selectors
 const branches = ['Computer Science', 'Electrical Eng.', 'Mechanical Eng.', 'Chemical Eng.', 'Civil Eng.', 'Materials Sci.', 'Physics', 'Mathematics', 'Chemistry'];
@@ -24,7 +25,6 @@ const interestsData = {
 interface ProfilePageProps {
   user: User;
   onProfileUpdate: (profile: Profile) => void;
-  sessions: Session[];
 }
 
 const getCharLimitColors = (length: number, limit: number) => {
@@ -71,7 +71,7 @@ const SelectionTile: React.FC<{label: string; isSelected: boolean; onToggle: () 
     );
 };
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, sessions }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate }) => {
   const [profileData, setProfileData] = useState<Profile>(user.profile);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -112,19 +112,26 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, sessio
       });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
     setShowSuccess(false);
-    // Simulate network delay
+
+    const { data, error } = await supabaseService.updateUserProfile(user.id, profileData);
+
+    setIsSaving(false);
+    
+    if (error || !data || data.length === 0) {
+      console.error("Failed to update profile", error);
+      // Ideally, show an error toast to the user
+      return;
+    }
+    
+    onProfileUpdate(data[0]);
+    setShowSuccess(true);
+
     setTimeout(() => {
-        onProfileUpdate(profileData);
-        setIsSaving(false);
-        setShowSuccess(true);
-        // After 1.5s, hide the success message and revert to text
-        setTimeout(() => {
-            setShowSuccess(false);
-        }, 1500);
-    }, 1000); // 1s save spinner
+      setShowSuccess(false);
+    }, 1500);
   };
   
   const initial = user.profile.username.charAt(0).toUpperCase();
@@ -149,7 +156,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, sessio
 
       <div className="p-4 space-y-4">
           <AccordionSection title="Session History & Stats" sectionId="history" openSection={openSection} setOpenSection={setOpenSection}>
-            <SessionHistory user={user} allSessions={sessions} />
+            <SessionHistory user={user} />
           </AccordionSection>
       
           <AccordionSection title="Edit Personal Info" sectionId="personal" openSection={openSection} setOpenSection={setOpenSection}>

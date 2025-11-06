@@ -98,12 +98,20 @@ const generateAvatar = (participantId: string, allFriends: Friend[], user: User,
 };
 
 
-const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocation, onSetUserLocation, onMapClick, events, user, friends, activeVibe, onCloseEvent, onExtendEvent, onJoinVibe, onViewChat, isVisible, activeFilter, campusZones }, ref) => {
+const MapView = forwardRef<MapViewRef, MapViewProps>((props, ref) => {
+  const { isCreateMode, userLocation, onSetUserLocation, onMapClick, events, isVisible, activeFilter, campusZones } = props;
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const radiusCircleRef = useRef<any>(null);
   const eventsLayerRef = useRef<any>(null);
   const userMarkerRef = useRef<any>(null);
+  
+  // Use a ref to hold props for use in event handlers, preventing stale closures
+  const propsRef = useRef(props);
+  useEffect(() => {
+    propsRef.current = props;
+  });
+
 
   const [displayCoords, setDisplayCoords] = useState<{ lat: number; lng: number }>({ lat: IITGN_COORDS[0], lng: IITGN_COORDS[1] });
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +122,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
     flyToSession: (session: Session) => { if (mapInstanceRef.current && session?.lat && session?.lng) { mapInstanceRef.current.flyTo([session.lat, session.lng], 18); } }
   }));
 
-  useEffect(() => { if (!mapRef.current || typeof L === 'undefined') { console.error("MapView: Leaflet library (L) is not defined or map container is not available."); setError("Map could not be loaded."); return; } const map = L.map(mapRef.current, { center: IITGN_COORDS, zoom: INITIAL_ZOOM, zoomControl: false, preferCanvas: true }); mapInstanceRef.current = map; L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19, keepBuffer: 2, }).addTo(map); L.control.scale({ position: 'bottomright' }).addTo(map); userMarkerRef.current = L.marker(IITGN_COORDS).addTo(map); eventsLayerRef.current = L.layerGroup().addTo(map); setTimeout(() => map.invalidateSize(), 100); return () => { map.remove(); }; }, []);
+  useEffect(() => { if (!mapRef.current || typeof L === 'undefined') { console.error("MapView: Leaflet library (L) is not defined or map container is not available."); setError("Map could not be loaded."); return; } const map = L.map(mapRef.current, { center: IITGN_COORDS, zoom: INITIAL_ZOOM, zoomControl: false }); mapInstanceRef.current = map; L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19, keepBuffer: 2, }).addTo(map); L.control.scale({ position: 'bottomright' }).addTo(map); userMarkerRef.current = L.marker(IITGN_COORDS).addTo(map); eventsLayerRef.current = L.layerGroup().addTo(map); setTimeout(() => map.invalidateSize(), 100); return () => { map.remove(); }; }, []);
   useEffect(() => { if (!mapInstanceRef.current) return; setLoadingLocation(true); setError(null); const locationTimeout = setTimeout(() => { setError('Could not get your location in time. Using default campus location.'); setLoadingLocation(false); }, 5000); navigator.geolocation.getCurrentPosition( (position) => { clearTimeout(locationTimeout); const userCoords: [number, number] = [position.coords.latitude, position.coords.longitude]; onSetUserLocation(userCoords); if (mapInstanceRef.current) { mapInstanceRef.current.flyTo(userCoords, LOCATION_FOUND_ZOOM); if (userMarkerRef.current) userMarkerRef.current.setLatLng(userCoords); } setDisplayCoords({ lat: userCoords[0], lng: userCoords[1] }); setError(null); setLoadingLocation(false); }, (geoError: GeolocationPositionError) => { clearTimeout(locationTimeout); let errorMessage = 'Using default location. Enable GPS for accuracy.'; if (geoError.code === geoError.PERMISSION_DENIED) { errorMessage = 'Location access denied. Enable it for full functionality.'; } setError(errorMessage); setLoadingLocation(false); }, { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 } ); return () => clearTimeout(locationTimeout); }, [onSetUserLocation]);
   useEffect(() => { if (isVisible && mapInstanceRef.current) { setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); } }, [isVisible]);
   useEffect(() => { if (mapInstanceRef.current && activeFilter && campusZones[activeFilter]) { const zone = campusZones[activeFilter]; mapInstanceRef.current.flyTo(zone.coords, zone.zoom); } }, [activeFilter, campusZones]);
@@ -151,7 +159,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
   useEffect(() => {
     const layer = eventsLayerRef.current;
     const map = mapInstanceRef.current;
-    if (!layer || !map || !user) return;
+    if (!layer || !map) return;
 
     layer.clearLayers();
     
@@ -164,14 +172,13 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
 
         const isScheduled = startTime > nowTime; 
         const isActive = !isScheduled; 
-        const minutesToStart = (startTime - nowTime) / 60000;
 
         const participantCount = event.participants?.length || 1;
         const markerSize = Math.min(40 + (participantCount - 1) * 4, 60);
-        let markerHtml = `<div class="emoji-container" style="font-size: ${markerSize * 0.7}px; text-align: center; line-height: ${markerSize}px;">${event.emoji}</div>`;
-        if (isActive) { markerHtml += '<div class="active-indicator"></div>'; } else { markerHtml += `<div class="countdown-timer">Starts in ${Math.round(minutesToStart)}m</div>`; }
-        if (event.privacy === 'private') { markerHtml += '<div class="private-indicator">🔒</div>'; }
         
+        // SIMPLIFIED MARKER HTML FOR STABILITY
+        let markerHtml = `<div class="emoji-container" style="font-size: ${markerSize * 0.7}px; text-align: center; line-height: ${markerSize}px;">${event.emoji}</div>`;
+
         const iconClasses = ['event-marker'];
         if (isActive) iconClasses.push('active'); else iconClasses.push('scheduled');
         if (event.privacy === 'private') iconClasses.push('private-marker');
@@ -185,6 +192,9 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         const eventMarker = L.marker([event.lat, event.lng], { icon: eventIcon }).addTo(layer);
         
         eventMarker.bindPopup(() => {
+            // Access latest props via ref to avoid stale closures and massive dependency array
+            const { onExtendEvent, onCloseEvent, onJoinVibe, onViewChat, user, friends, activeVibe } = propsRef.current;
+            
             const popupNode = document.createElement('div');
             popupNode.className = "p-1 font-sans";
             
@@ -263,7 +273,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
             return popupNode;
         });
     });
-  }, [events, user, friends, activeVibe, onCloseEvent, onExtendEvent, onJoinVibe, onViewChat]);
+  }, [events]); // This effect now ONLY depends on the events data, ensuring maximum stability.
 
   return (
     <div className="relative w-full h-full bg-green-200 z-0">

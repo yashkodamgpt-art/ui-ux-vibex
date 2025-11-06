@@ -306,13 +306,14 @@ MOCK_USERS_DATABASE.splice(15, 0, MOCK_FRIENDS[10]);
 // --- NEW MOCK FRIEND REQUESTS ---
 export const MOCK_FRIEND_REQUESTS: FriendRequest[] = [
   // Incoming requests for MOCK_USER
-  { fromUserId: 'user-db-3', toUserId: MOCK_USER.id },
-  { fromUserId: 'user-db-10', toUserId: MOCK_USER.id },
-  { fromUserId: 'user-db-22', toUserId: MOCK_USER.id },
+// FIX: Add missing 'id' property to FriendRequest objects to match type.
+  { id: 'req-1', fromUserId: 'user-db-3', toUserId: MOCK_USER.id },
+  { id: 'req-2', fromUserId: 'user-db-10', toUserId: MOCK_USER.id },
+  { id: 'req-3', fromUserId: 'user-db-22', toUserId: MOCK_USER.id },
   
   // Outgoing requests from MOCK_USER
-  { fromUserId: MOCK_USER.id, toUserId: 'user-db-5' },
-  { fromUserId: MOCK_USER.id, toUserId: 'user-db-18' },
+  { id: 'req-4', fromUserId: MOCK_USER.id, toUserId: 'user-db-5' },
+  { id: 'req-5', fromUserId: MOCK_USER.id, toUserId: 'user-db-18' },
 ];
 
 // --- NEW MOCK DIRECT MESSAGES & CONVERSATIONS ---
@@ -322,23 +323,34 @@ const hours = (h: number) => h * 60 * 60 * 1000;
 
 export const MOCK_DIRECT_MESSAGES: { [key: string]: DirectMessage[] } = {
     'conv-1': [
-        { id: 'dm-1-1', senderId: 'friend-1', text: "Hey! Are you free to work on the project tomorrow?", timestamp: new Date(now - hours(2)).toISOString() },
-        { id: 'dm-1-2', senderId: MOCK_USER.id, text: "Yeah, I should be. What time works for you?", timestamp: new Date(now - hours(1.9)).toISOString() },
-        { id: 'dm-1-3', senderId: 'friend-1', text: "How about around 2 PM at the library?", timestamp: new Date(now - minutes(5)).toISOString() },
+// FIX: Add missing 'conversation_id' property to DirectMessage object.
+        { id: 'dm-1-1', conversation_id: 'conv-1', senderId: 'friend-1', text: "Hey! Are you free to work on the project tomorrow?", timestamp: new Date(now - hours(2)).toISOString() },
+// FIX: Add missing 'conversation_id' property to DirectMessage object.
+        { id: 'dm-1-2', conversation_id: 'conv-1', senderId: MOCK_USER.id, text: "Yeah, I should be. What time works for you?", timestamp: new Date(now - hours(1.9)).toISOString() },
+// FIX: Add missing 'conversation_id' property to DirectMessage object.
+        { id: 'dm-1-3', conversation_id: 'conv-1', senderId: 'friend-1', text: "How about around 2 PM at the library?", timestamp: new Date(now - minutes(5)).toISOString() },
     ],
     'conv-2': [
-        { id: 'dm-2-1', senderId: 'friend-5', text: "Great game today! We should play again sometime.", timestamp: new Date(now - hours(23)).toISOString() },
+// FIX: Add missing 'conversation_id' property to DirectMessage object.
+        { id: 'dm-2-1', conversation_id: 'conv-2', senderId: 'friend-5', text: "Great game today! We should play again sometime.", timestamp: new Date(now - hours(23)).toISOString() },
     ],
     'conv-3': [
-        { id: 'dm-3-1', senderId: 'friend-8', text: "Did you finish the math assignment?", timestamp: new Date(now - hours(5)).toISOString() },
-        { id: 'dm-3-2', senderId: 'friend-8', text: "I'm stuck on the last question.", timestamp: new Date(now - hours(4.5)).toISOString() },
-        { id: 'dm-3-3', senderId: MOCK_USER.id, text: "Almost, that last one is tricky. Let's look at it together.", timestamp: new Date(now - hours(4)).toISOString() },
-        { id: 'dm-3-4', senderId: 'friend-8', text: "Sounds good, thanks!", timestamp: new Date(now - hours(3.9)).toISOString() },
+// FIX: Add missing 'conversation_id' property to DirectMessage object.
+        { id: 'dm-3-1', conversation_id: 'conv-3', senderId: 'friend-8', text: "Did you finish the math assignment?", timestamp: new Date(now - hours(5)).toISOString() },
+// FIX: Add missing 'conversation_id' property to DirectMessage object.
+        { id: 'dm-3-2', conversation_id: 'conv-3', senderId: 'friend-8', text: "I'm stuck on the last question.", timestamp: new Date(now - hours(4.5)).toISOString() },
+// FIX: Add missing 'conversation_id' property to DirectMessage object.
+        { id: 'dm-3-3', conversation_id: 'conv-3', senderId: MOCK_USER.id, text: "Almost, that last one is tricky. Let's look at it together.", timestamp: new Date(now - hours(4)).toISOString() },
+// FIX: Add missing 'conversation_id' property to DirectMessage object.
+        { id: 'dm-3-4', conversation_id: 'conv-3', senderId: 'friend-8', text: "Sounds good, thanks!", timestamp: new Date(now - hours(3.9)).toISOString() },
     ],
     'conv-4': [
-         { id: 'dm-4-1', senderId: 'friend-3', text: "Movie night this Friday?", timestamp: new Date(now - minutes(30)).toISOString() },
-         { id: 'dm-4-2', senderId: MOCK_USER.id, text: "Definitely! What are we watching?", timestamp: new Date(now - minutes(28)).toISOString() },
-         { id: 'dm-4-3', senderId: 'friend-3', text: "Thinking about the new sci-fi flick that just came out. Heard it's amazing.", timestamp: new Date(now - minutes(25)).toISOString() },
+// FIX: Add missing 'conversation_id' property to DirectMessage object.
+         { id: 'dm-4-1', conversation_id: 'conv-4', senderId: 'friend-3', text: "Movie night this Friday?", timestamp: new Date(now - minutes(30)).toISOString() },
+// FIX: Add missing 'conversation_id' property to DirectMessage object.
+         { id: 'dm-4-2', conversation_id: 'conv-4', senderId: MOCK_USER.id, text: "Definitely! What are we watching?", timestamp: new Date(now - minutes(28)).toISOString() },
+// FIX: Add missing 'conversation_id' property to DirectMessage object.
+         { id: 'dm-4-3', conversation_id: 'conv-4', senderId: 'friend-3', text: "Thinking about the new sci-fi flick that just came out. Heard it's amazing.", timestamp: new Date(now - minutes(25)).toISOString() },
     ]
 };
 

@@ -2,10 +2,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Session, User, SessionType } from '../../types';
 import SessionHistoryCard from './SessionHistoryCard';
+import * as supabaseService from '../../lib/supabaseService';
 
 interface SessionHistoryProps {
   user: User;
-  allSessions: Session[];
 }
 
 type TypeFilter = 'All' | 'Created' | 'Joined' | 'Cookies Given';
@@ -28,16 +28,21 @@ const SkeletonCard: React.FC = () => (
     </div>
 );
 
-const SessionHistory: React.FC<SessionHistoryProps> = ({ user, allSessions }) => {
+const SessionHistory: React.FC<SessionHistoryProps> = ({ user }) => {
+  const [userHistory, setUserHistory] = useState<Session[]>([]);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('All');
   const [dateFilter, setDateFilter] = useState<DateFilter>('All Time');
   const [isLoading, setIsLoading] = useState(true);
 
-  const userHistory = useMemo(() => {
-    return allSessions
-      .filter(s => s.status === 'closed' && (s.creator_id === user.id || s.participants.includes(user.id)))
-      .sort((a, b) => new Date(b.event_time).getTime() - new Date(a.event_time).getTime());
-  }, [allSessions, user.id]);
+  useEffect(() => {
+    const loadHistory = async () => {
+        setIsLoading(true);
+        const { data } = await supabaseService.fetchUserSessionHistory(user.id);
+        setUserHistory(data || []);
+        setIsLoading(false);
+    };
+    loadHistory();
+  }, [user.id]);
 
   const stats = useMemo(() => {
     const created = userHistory.filter(s => s.creator_id === user.id);

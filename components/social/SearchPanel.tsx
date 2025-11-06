@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { User, Friend, FriendRequest } from '../../types';
 import UserSearchCard from './UserSearchCard';
+import * as supabaseService from '../../lib/supabaseService';
 
 type RelationshipStatus = 'self' | 'friend' | 'request_sent' | 'request_received' | 'none';
 
 interface SearchPanelProps {
   currentUser: User;
   friends: Friend[];
-  allUsers: Friend[];
   friendRequests: FriendRequest[];
   onSendRequest: (toUserId: string) => void;
   onAcceptRequest: (fromUserId: string) => void;
@@ -27,31 +27,57 @@ const SkeletonCard: React.FC = () => (
 );
 
 
-const SearchPanel: React.FC<SearchPanelProps> = ({ currentUser, friends, allUsers, friendRequests, onSendRequest, onAcceptRequest, onRejectRequest, onViewProfile }) => {
+const SearchPanel: React.FC<SearchPanelProps> = ({ currentUser, friends, friendRequests, onSendRequest, onAcceptRequest, onRejectRequest, onViewProfile }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<Friend[]>([]);
+  const [incomingRequestUsers, setIncomingRequestUsers] = useState<Friend[]>([]);
 
+  // Debounce search input
   useEffect(() => {
     setIsLoading(true);
     const handler = setTimeout(() => {
       setDebouncedQuery(searchQuery);
     }, 300);
-
     return () => clearTimeout(handler);
   }, [searchQuery]);
-  
+
+  // Fetch profiles for incoming friend requests
   useEffect(() => {
-      if (debouncedQuery !== '') {
-          const searchTimeout = setTimeout(() => setIsLoading(false), 200); // Simulate network delay
-          return () => clearTimeout(searchTimeout);
-      } else {
-          setIsLoading(false);
-      }
-  }, [debouncedQuery]);
+    const incomingUserIds = friendRequests
+      .filter(req => req.toUserId === currentUser.id)
+      .map(req => req.fromUserId);
+
+    if (incomingUserIds.length > 0) {
+      const fetchIncomingProfiles = async () => {
+        const { data } = await supabaseService.fetchProfilesByIds(incomingUserIds);
+        setIncomingRequestUsers(data || []);
+      };
+      fetchIncomingProfiles();
+    } else {
+      setIncomingRequestUsers([]);
+    }
+  }, [friendRequests, currentUser.id]);
+
+  // Fetch search results from backend when debounced query changes
+  useEffect(() => {
+    if (debouncedQuery.length > 2) {
+      setIsLoading(true);
+      const performSearch = async () => {
+        const { data } = await supabaseService.searchUsers(debouncedQuery, currentUser.id);
+        setSearchResults(data || []);
+        setIsLoading(false);
+      };
+      performSearch();
+    } else {
+      setSearchResults([]);
+      setIsLoading(false);
+    }
+  }, [debouncedQuery, currentUser.id]);
 
 
-  const { incomingRequests, searchResults } = useMemo(() => {
+  const processedData = useMemo(() => {
     const friendIds = new Set(friends.map(f => f.id));
     const outgoingRequestIds = new Set(friendRequests.filter(r => r.fromUserId === currentUser.id).map(r => r.toUserId));
     const incomingRequestIds = new Set(friendRequests.filter(r => r.toUserId === currentUser.id).map(r => r.fromUserId));
@@ -63,25 +89,12 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ currentUser, friends, allUser
         if (incomingRequestIds.has(userId)) return 'request_received';
         return 'none';
     };
-
-    const incoming = allUsers.filter(u => incomingRequestIds.has(u.id));
-
-    let results: Friend[] = [];
-    if (debouncedQuery.length > 2) {
-        results = allUsers
-            .filter(u => 
-                u.id !== currentUser.id && (
-                u.username.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-                u.id.toLowerCase().includes(debouncedQuery.toLowerCase())
-            ))
-            .slice(0, 20); // Limit results
-    }
     
     return {
-        incomingRequests: incoming.map(u => ({ user: u, status: getStatus(u.id) })),
-        searchResults: results.map(u => ({ user: u, status: getStatus(u.id) }))
+        incomingRequests: incomingRequestUsers.map(u => ({ user: u, status: getStatus(u.id) })),
+        searchResults: searchResults.map(u => ({ user: u, status: getStatus(u.id) }))
     };
-  }, [debouncedQuery, currentUser.id, friends, allUsers, friendRequests]);
+  }, [currentUser.id, friends, friendRequests, searchResults, incomingRequestUsers]);
 
   const handleAction = (userId: string, status: RelationshipStatus) => {
       switch(status) {
@@ -103,10 +116,10 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ currentUser, friends, allUser
       />
 
       {/* Incoming Requests */}
-      {incomingRequests.length > 0 && (
+      {processedData.incomingRequests.length > 0 && (
           <div className="space-y-3">
               <h2 className="font-bold text-gray-700">Friend Requests</h2>
-              {incomingRequests.map(({user, status}) => (
+              {processedData.incomingRequests.map(({user, status}) => (
                   <UserSearchCard 
                     key={user.id}
                     user={user}
@@ -127,14 +140,14 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ currentUser, friends, allUser
         
         {isLoading && debouncedQuery.length > 2 && Array.from({length: 3}).map((_, i) => <SkeletonCard key={i} />) }
 
-        {!isLoading && debouncedQuery.length > 2 && searchResults.length === 0 && (
+        {!isLoading && debouncedQuery.length > 2 && processedData.searchResults.length === 0 && (
             <div className="text-center py-10">
                 <h3 className="text-lg font-semibold text-gray-600">No users found</h3>
                 <p className="text-gray-500 mt-1">Try a different name or check for typos.</p>
             </div>
         )}
 
-        {!isLoading && searchResults.length > 0 && searchResults.map(({user, status}) => (
+        {!isLoading && processedData.searchResults.length > 0 && processedData.searchResults.map(({user, status}) => (
             <UserSearchCard 
                 key={user.id}
                 user={user}
@@ -144,7 +157,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ currentUser, friends, allUser
             />
         ))}
 
-        {!isLoading && debouncedQuery.length > 2 && searchResults.length >= 20 && (
+        {!isLoading && debouncedQuery.length > 2 && processedData.searchResults.length >= 20 && (
             <p className="text-center text-sm text-gray-500 pt-4">Showing top 20 results.</p>
         )}
       </div>

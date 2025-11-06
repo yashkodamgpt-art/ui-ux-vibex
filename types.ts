@@ -120,6 +120,7 @@ export interface Tag {
  * NEW: Represents a friend request between two users.
  */
 export interface FriendRequest {
+  id: string; // The request's UUID from Supabase
   fromUserId: string;
   toUserId: string;
 }
@@ -129,6 +130,7 @@ export interface FriendRequest {
  */
 export interface DirectMessage {
   id: string;
+  conversation_id: string; // Foreign key to the conversation
   senderId: string;
   text: string;
   timestamp: string; // ISO String
@@ -162,7 +164,7 @@ export type NotificationType =
 export interface Notification {
   id: string;
   type: NotificationType;
-  user?: { id: string; username: string }; // User who triggered the notification
+  user?: { id: string; username: string }; // User who triggered the notification (actor)
   session?: { id: number; title: string; emoji: string }; // Related session
   tag?: { id: string; name: string }; // Related tag
   timestamp: string; // ISO String

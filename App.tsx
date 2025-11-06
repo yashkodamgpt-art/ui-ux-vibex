@@ -4,17 +4,13 @@ import type { User } from './types';
 import Login from './components/auth/Login';
 import SignUp from './components/auth/SignUp';
 import MainApp from './MainApp';
-// We keep the supabase import for other parts, but won't use it for auth here
 import { supabase } from './lib/supabaseClient';
-
-// --- NEW MOCK DATA IMPORT ---
-import { MOCK_USER } from './lib/mockData';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 type AuthView = 'login' | 'signup';
 
 const App: React.FC = () => {
   const [currentUser, _setCurrentUser] = useState<User | null>(null);
-  // This state is no longer used, but we keep it to avoid breaking <Login> and <SignUp>
   const [authView, setAuthView] = useState<AuthView>('login');
   const [loading, setLoading] = useState(true);
 
@@ -33,26 +29,71 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // --- MOCK AUTHENTICATION ---
-  // We've replaced the entire 'loadUserProfile' and 'useEffect' for auth
-  // with a simple mock loader.
+  // --- REAL AUTHENTICATION ---
+  const loadUserProfile = useCallback(async (authUser: SupabaseUser) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile for user, signing out:', authUser.id, error);
+        // If profile doesn't exist yet (e.g., due to db trigger delay/failure),
+        // sign them out to prevent app crash and force a re-login.
+        await supabase.auth.signOut();
+        setCurrentUser(null);
+        return;
+      }
+
+      if (data) {
+        const appUser: User = {
+          id: authUser.id,
+          email: authUser.email,
+          profile: data,
+        };
+        setCurrentUser(appUser);
+      }
+    } catch (error) {
+      console.error('Error in loadUserProfile:', error);
+      setCurrentUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [setCurrentUser]);
+
   useEffect(() => {
     setLoading(true);
-    console.log('--- MOCK MODE ACTIVE ---');
-    
-    // Simulate a network delay, then log in as our MOCK_USER
-    const mockLogin = setTimeout(() => {
-      console.log(`📥 Loading MOCK_USER: ${MOCK_USER.profile.username}`);
-      setCurrentUser(MOCK_USER);
-      setLoading(false);
-      console.log('✅ Mock user loaded.');
-    }, 1000); // 1-second delay
 
-    return () => clearTimeout(mockLogin);
-  }, [setCurrentUser]); // We only run this once on mount
+    // Check for an existing session on initial load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        loadUserProfile(session.user);
+      } else {
+        setLoading(false);
+      }
+    });
+    
+    // Set up a listener for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          // A user is signed in or their token was refreshed.
+          await loadUserProfile(session.user);
+        } else if (event === 'SIGNED_OUT') {
+          // The user signed out.
+          setCurrentUser(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [loadUserProfile, setCurrentUser]);
   
-  // This is the real Supabase logout, which is fine to keep.
-  // It will clear the (non-existent) session and we'll just reload the app.
   const handleLogout = useCallback(async () => {
     console.log('Logging out and clearing all storage...');
     const { error } = await supabase.auth.signOut();
@@ -66,8 +107,6 @@ const App: React.FC = () => {
   }, []);
 
   
-  // This function is still passed to MainApp, but it won't be called
-  // until we build the real profile page. It's safe to keep.
   const handleProfileUpdate = async (updatedProfile: User['profile']) => {
       if (!currentUser) return;
       console.log('--- MOCK: Profile Update ---', updatedProfile);
@@ -88,26 +127,21 @@ const App: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen bg-green-50">
         <div className="text-center p-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Initializing Mock Session...</p>
+          <p className="text-gray-600">Loading Session...</p>
         </div>
       </div>
     );
   }
 
-  // If mock login fails (which it shouldn't), show an error.
-  // We no longer need the Login/SignUp components.
   if (!currentUser) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-green-50">
-        <div className="text-center p-4">
-          <h1 className="text-red-500 text-lg">MOCK_USER failed to load.</h1>
-          <p className="text-gray-600">Check `lib/mockData.ts` and `App.tsx`.</p>
-        </div>
-      </div>
+    return authView === 'login' ? (
+      <Login switchToSignUp={() => setAuthView('signup')} />
+    ) : (
+      <SignUp switchToLogin={() => setAuthView('login')} />
     );
   }
 
-  // Render the app with our MOCK_USER
+  // Render the app with our authenticated user
   return <MainApp user={currentUser} onLogout={handleLogout} onProfileUpdate={handleProfileUpdate} />;
 };
 
