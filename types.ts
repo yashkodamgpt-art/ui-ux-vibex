@@ -69,13 +69,19 @@ export interface Session {
   
   // Conditional Fields
   genderFilter: GenderFilter; // 'neutral' or 'same_gender' (for 'vibe')
-  creatorGender?: 'male' | 'female' | 'other'; // NEW
+  creatorGender?: 'male' | 'female' | 'other';
   returnTime?: string; // ISO string (for 'borrow')
   flow?: 'seeking' | 'offering'; // (for 'seek' and 'cookie')
 
-  // NEW: Privacy fields for private vibes
+  // Privacy fields for private vibes
   privacy: 'public' | 'private';
   visibleToTags?: string[]; // Array of tag IDs
+  
+  // NEW: Fields for Seek & Cookie flows
+  helpCategory?: 'Academic' | 'Project' | 'Tech' | 'General';
+  skillTag?: string; // e.g., "Python"
+  expectedOutcome?: string;
+  participantRoles?: { [userId: string]: 'seeking' | 'offering' };
 }
 
 /**
@@ -101,7 +107,7 @@ export interface Friend {
   year: number;
   cookieScore: number;
   mutualFriends: number;
-  gender: 'male' | 'female' | 'other'; // NEW
+  gender: 'male' | 'female' | 'other';
 }
 
 /**

@@ -48,11 +48,11 @@ export const MOCK_USER: User = {
     bio: 'Just a test user bio!',
     branch: 'Computer Science',
     year: 2025,
-    expertise: ['React', 'Python'],
-    interests: ['Chess', 'Football'],
+    expertise: ['React', 'Python', 'Chess', 'Graphic Design'],
+    interests: ['Football', 'Movies', 'Reading'],
     cookieScore: totalScore,
     privacy: 'public',
-    gender: 'male', // NEW
+    gender: 'male',
     skillScores: skillScores,
     vouchHistory: MOCK_VOUCH_HISTORY.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
   },
@@ -100,7 +100,7 @@ const generatePastSession = (id: number, daysAgo: number, createdByUser: boolean
     participants,
     creator: { username: creatorUsername },
     genderFilter: 'neutral',
-    creatorGender: isCreator ? MOCK_USER.profile.gender : (id % 2 === 0 ? 'female' : 'male'), // NEW
+    creatorGender: isCreator ? MOCK_USER.profile.gender : (id % 2 === 0 ? 'female' : 'male'),
     flow: (type === 'cookie' || type === 'vibe') ? 'offering' : 'seeking',
     privacy: 'public',
   };
@@ -139,12 +139,11 @@ export const MOCK_SESSIONS: Session[] = [
     event_time: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // Started 10 mins ago
     duration: 60,
     status: 'active',
-    creator_id: '1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d',
-    participants: ['1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d', 'friend-2'],
-    creator: { username: 'testuser' },
+    creator_id: MOCK_USER.id,
+    participants: [MOCK_USER.id, 'friend-2'],
+    creator: { username: MOCK_USER.profile.username },
     genderFilter: 'neutral',
-    creatorGender: 'male', // NEW
-    flow: 'offering',
+    creatorGender: 'male',
     privacy: 'public',
   },
   {
@@ -159,12 +158,13 @@ export const MOCK_SESSIONS: Session[] = [
     duration: 30,
     status: 'active',
     creator_id: 'friend-4',
-    participants: ['friend-4'],
+    participants: ['friend-4', 'friend-1'],
     creator: { username: 'Diana' },
     genderFilter: 'neutral',
-    creatorGender: 'female', // NEW
-    flow: 'seeking',
+    creatorGender: 'female',
     privacy: 'public',
+    helpCategory: 'Project',
+    participantRoles: { 'friend-4': 'seeking', 'friend-1': 'offering' }
   },
   {
     id: 3,
@@ -181,10 +181,30 @@ export const MOCK_SESSIONS: Session[] = [
     participants: ['user-3'],
     creator: { username: 'student123' },
     genderFilter: 'neutral',
-    creatorGender: 'male', // NEW
-    flow: 'seeking',
+    creatorGender: 'male',
     returnTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
     privacy: 'public',
+  },
+  {
+    id: 4,
+    title: 'Python Tutoring',
+    description: 'Helping with basics of Python for the first-year course.',
+    lat: 23.1932,
+    lng: 72.6845,
+    sessionType: 'cookie',
+    emoji: '🍪',
+    event_time: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+    duration: 45,
+    status: 'active',
+    creator_id: MOCK_USER.id,
+    participants: [MOCK_USER.id],
+    creator: { username: MOCK_USER.profile.username },
+    genderFilter: 'neutral',
+    creatorGender: 'male',
+    privacy: 'public',
+    skillTag: 'Python',
+    expectedOutcome: 'Understand variables, loops, and basic functions.',
+    participantRoles: { [MOCK_USER.id]: 'offering' }
   },
   {
     id: 20,
@@ -201,7 +221,7 @@ export const MOCK_SESSIONS: Session[] = [
     participants: ['friend-5'],
     creator: { username: 'Ethan' },
     genderFilter: 'neutral',
-    creatorGender: 'male', // NEW
+    creatorGender: 'male',
     privacy: 'private',
     visibleToTags: ['tag-4'],
   },
@@ -219,8 +239,8 @@ export const MOCK_SESSIONS: Session[] = [
     creator_id: 'friend-4', // Diana
     participants: ['friend-4'],
     creator: { username: 'Diana' },
-    genderFilter: 'same_gender', // NEW
-    creatorGender: 'female', // NEW
+    genderFilter: 'same_gender',
+    creatorGender: 'female',
     privacy: 'public',
   },
   ...pastSessions,
@@ -268,7 +288,7 @@ export const MOCK_USERS_DATABASE: Friend[] = Array.from({ length: 55 }, (_, i) =
         year: years[i % years.length],
         cookieScore: Math.floor(Math.random() * 500),
         mutualFriends: Math.floor(Math.random() * 15),
-        gender: genders[i % genders.length], // NEW
+        gender: genders[i % genders.length],
     }
 });
 // Add some of the existing friends to the database to test the 'Friends' status
