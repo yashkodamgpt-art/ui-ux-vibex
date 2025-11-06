@@ -1,23 +1,22 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-// FIX: Replaced obsolete 'Event' and 'VibeMessage' types with the new 'Session' and 'SessionMessage' types.
 import type { User, Session, SessionMessage, Profile } from './types';
 import MapView, { type MapViewRef } from './components/map/MapView';
-import HistoryPanel from './components/history/HistoryPanel';
-import FloatingActionButton from './components/common/FloatingActionButton';
-import CreateEventButton from './components/common/CreateEventButton';
 import CreateEventModal from './components/events/CreateEventModal';
 import MyLocationButton from './components/common/MyLocationButton';
+import CreateEventButton from './components/common/CreateEventButton';
 import VibeChatPanel from './components/vibes/VibeChatPanel';
 import SettingsModal from './components/profile/SettingsModal';
 import ProfileModal from './components/profile/ProfileModal';
-import ProfileQuickView from './components/layout/ProfileQuickView';
 import { supabase } from './lib/supabaseClient';
 import BottomNavBar, { type AppTab } from './components/layout/BottomNavBar';
 import PageHeader from './components/layout/PageHeader';
 import SocialPage from './components/social/SocialPage';
 import AlertsPage from './components/alerts/AlertsPage';
 import ProfilePage from './components/profile/ProfilePage';
+
+// --- NEW MOCK DATA IMPORT ---
+import { MOCK_SESSIONS } from './lib/mockData';
 
 interface MainAppProps {
   user: User;
@@ -27,143 +26,53 @@ interface MainAppProps {
 
 const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) => {
   const [activeTab, setActiveTab] = useState<AppTab>('Home');
-  const [isHistoryVisible, setIsHistoryVisible] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newEventCoords, setNewEventCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  // FIX: State now holds an array of 'Session' objects.
-  const [events, setEvents] = useState<Session[]>([]);
-  // FIX: State for the active session is now of type 'Session'.
+  
+  // --- MOCK DATA STATE ---
+  // We now load our mock sessions directly into state.
+  const [sessions, setSessions] = useState<Session[]>(MOCK_SESSIONS);
   const [activeVibe, setActiveVibe] = useState<Session | null>(null);
+  
   const [isChatVisible, setIsChatVisible] = useState(false);
-  // FIX: State for chat messages now holds 'SessionMessage' objects.
   const [chatMessages, setChatMessages] = useState<SessionMessage[]>([]);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [viewedUser, setViewedUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mapViewRef = useRef<MapViewRef>(null);
-  const [sessionValid, setSessionValid] = useState(true);
+  const [sessionValid, setSessionValid] = useState(true); // Always true in mock mode
 
   useEffect(() => {
     console.log('🎯 MainApp mounted for user:', user.profile.username);
   }, [user]);
 
-  useEffect(() => {
-    if (!sessionValid) return;
-    
-    const fetchEvents = async () => {
-        try {
-            // FIX: Fetching from 'sessions' table instead of 'events'.
-            const { data, error: fetchError } = await supabase
-                .from('sessions')
-                .select('*, creator:profiles(username)')
-                .eq('status', 'active');
-            
-            if (fetchError) {
-                console.error("Error fetching events", fetchError);
-                if (fetchError.message.includes('JWT') || fetchError.message.includes('session')) {
-                  setError("Session expired. Please log in again.");
-                  setTimeout(() => onLogout(), 2000);
-                } else {
-                  setError("Failed to load events. Please refresh the page.");
-                }
-            } else {
-                // FIX: Data is cast to 'Session[]'.
-                setEvents(data as Session[]);
-                setError(null);
-            }
-        } catch (err) {
-            console.error("Unexpected error:", err);
-            setError("An unexpected error occurred while loading events.");
-        }
-    };
-    fetchEvents();
+  // --- ALL SUPABASE LOGIC IS NOW COMMENTED OUT ---
 
-    // FIX: Subscribing to changes on the 'sessions' table.
-    const eventsSubscription = supabase.channel('public:sessions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, payload => {
-        console.log('Change received!', payload)
-        fetchEvents();
-      })
-      .subscribe();
-      
-    return () => {
-        supabase.removeChannel(eventsSubscription);
-    };
-  }, [sessionValid, onLogout]);
+  // useEffect(() => {
+  //   if (!sessionValid) return;
+  //   const fetchEvents = async () => { ... };
+  //   fetchEvents();
+  //   const eventsSubscription = supabase.channel(...)
+  //   return () => { supabase.removeChannel(eventsSubscription); };
+  // }, [sessionValid, onLogout]);
   
-  useEffect(() => {
-    if (!sessionValid) return;
-    
-    let messagesSubscription: any = null;
-    if (isChatVisible && activeVibe) {
-        const fetchMessages = async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('messages')
-                    .select('*, sender:profiles(username)')
-                    // FIX: Filtering messages by 'session_id' instead of 'event_id'.
-                    .eq('session_id', activeVibe.id)
-                    .order('created_at');
-                    
-                if (error) {
-                    console.error("Error fetching messages", error);
-                    if (error.message.includes('JWT') || error.message.includes('session')) {
-                      setError("Session expired. Please log in again.");
-                      setTimeout(() => onLogout(), 2000);
-                    }
-                } else {
-                    // FIX: Data is cast to 'SessionMessage[]'.
-                    setChatMessages(data as any[] as SessionMessage[]);
-                }
-            } catch (err) {
-                console.error("Unexpected error fetching messages:", err);
-            }
-        };
-        fetchMessages();
-
-        // FIX: Subscribing to message changes with a 'session_id' filter.
-        messagesSubscription = supabase.channel(`public:messages:session_id=eq.${activeVibe.id}`)
-            .on('postgres_changes', { 
-                event: 'INSERT', 
-                schema: 'public', 
-                table: 'messages', 
-                filter: `session_id=eq.${activeVibe.id}` 
-            }, 
-            async (payload) => {
-                try {
-                    const { data: profile, error } = await supabase
-                        .from('profiles')
-                        .select('username')
-                        .eq('id', payload.new.sender_id)
-                        .single();
-                        
-                    if (error) {
-                        console.error(error);
-                        setChatMessages(msgs => [...msgs, { 
-                            ...payload.new, 
-                            sender: { username: 'Unknown' } 
-                        } as SessionMessage]);
-                    } else {
-                        setChatMessages(msgs => [...msgs, { 
-                            ...payload.new, 
-                            sender: { username: profile.username } 
-                        } as SessionMessage]);
-                    }
-                } catch (err) {
-                    console.error('Error handling new message:', err);
-                }
-            })
-            .subscribe();
-    }
-    return () => {
-        if(messagesSubscription) {
-            supabase.removeChannel(messagesSubscription);
-        }
-    };
-  }, [isChatVisible, activeVibe, sessionValid, onLogout]);
+  // useEffect(() => {
+  //   if (!sessionValid) return;
+  //   let messagesSubscription: any = null;
+  //   if (isChatVisible && activeVibe) {
+  //       const fetchMessages = async () => { ... };
+  //       fetchMessages();
+  //       messagesSubscription = supabase.channel(...)
+  //   }
+  //   return () => {
+  //       if(messagesSubscription) {
+  //           supabase.removeChannel(messagesSubscription);
+  //       }
+  //   };
+  // }, [isChatVisible, activeVibe, sessionValid, onLogout]);
 
   const handleMapClickInCreateMode = (coords: { lat: number; lng: number }) => {
     if (activeVibe) {
@@ -175,231 +84,98 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
     setIsCreateModalOpen(true);
   };
 
-  // FIX: Type of 'eventData' is now based on 'Session'.
   const handleCreateEvent = async (eventData: Omit<Session, 'id' | 'creator' | 'creator_id' | 'lat' | 'lng' | 'participants' | 'creator'>) => {
     if (!newEventCoords || !sessionValid) return;
-
-    try {
-        // FIX: Inserting into 'sessions' table.
-        const { data: newEvent, error } = await supabase
-            .from('sessions')
-            .insert({
-                ...eventData,
-                status: 'active',
-                lat: newEventCoords.lat,
-                lng: newEventCoords.lng,
-                creator_id: user.id,
-                participants: [user.id],
-            })
-            .select('*, creator:profiles(username)')
-            .single();
-        
-        if (error) {
-            console.error("Error creating event:", error);
-            if (error.message.includes('JWT') || error.message.includes('session')) {
-              setError("Session expired. Please log in again.");
-              setTimeout(() => onLogout(), 2000);
-            } else {
-              setError("Failed to create event. Please try again.");
-            }
-        } else if (newEvent) {
-            // FIX: New event is cast to 'Session'.
-            setActiveVibe(newEvent as Session);
-            setIsCreateModalOpen(false);
-            setNewEventCoords(null);
-            setIsCreateMode(false);
-            setError(null);
-        }
-    } catch (err) {
-        console.error("Unexpected error creating event:", err);
-        setError("Failed to create event. Please try again.");
-    }
+    console.log('--- MOCK: Creating Event ---', eventData);
+    // In mock mode, we just add it to our local state.
+    const newSession: Session = {
+      ...eventData,
+      id: Math.floor(Math.random() * 10000), // Random ID
+      lat: newEventCoords.lat,
+      lng: newEventCoords.lng,
+      creator_id: user.id,
+      participants: [user.id],
+      creator: { username: user.profile.username },
+    };
+    setSessions(prevSessions => [...prevSessions, newSession]);
+    setActiveVibe(newSession);
+    setIsCreateModalOpen(false);
+    setNewEventCoords(null);
+    setIsCreateMode(false);
   };
   
   const handleRecenterMap = () => {
     mapViewRef.current?.recenter();
   };
 
-  const handleCloseEvent = async (eventId: number) => {
-    if (!sessionValid) return;
-    
-    try {
-        // FIX: Updating the 'sessions' table.
-        const { error } = await supabase
-            .from('sessions')
-            .update({ status: 'closed' })
-            .eq('id', eventId);
-            
-        if (error) {
-            console.error("Error closing event:", error);
-            if (error.message.includes('JWT') || error.message.includes('session')) {
-              setError("Session expired. Please log in again.");
-              setTimeout(() => onLogout(), 2000);
-            }
-        } else {
-            if (activeVibe?.id === eventId) {
-              setActiveVibe(null);
-              setIsChatVisible(false);
-            }
-        }
-    } catch (err) {
-        console.error("Unexpected error closing event:", err);
+  const handleCloseEvent = async (sessionId: number) => {
+    console.log('--- MOCK: Closing Session ---', sessionId);
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+    if (activeVibe?.id === sessionId) {
+      setActiveVibe(null);
+      setIsChatVisible(false);
     }
   };
 
-  const handleExtendEvent = async (eventId: number) => {
-      if (!sessionValid) return;
-      
-      const event = events.find(e => e.id === eventId);
-      if (!event) return;
-      
-      try {
-          // FIX: Updating the 'sessions' table.
-          const { error } = await supabase
-              .from('sessions')
-              .update({ duration: event.duration + 15 })
-              .eq('id', eventId);
-              
-          if (error) {
-              console.error("Error extending event:", error);
-              if (error.message.includes('JWT') || error.message.includes('session')) {
-                setError("Session expired. Please log in again.");
-                setTimeout(() => onLogout(), 2000);
-              }
-          }
-      } catch (err) {
-          console.error("Unexpected error extending event:", err);
-      }
+  const handleExtendEvent = async (sessionId: number) => {
+      console.log('--- MOCK: Extending Session ---', sessionId);
+      setSessions(prev => prev.map(s => 
+        s.id === sessionId ? { ...s, duration: s.duration + 15 } : s
+      ));
   };
 
-  const handleJoinVibe = async (eventId: number) => {
-    if (!sessionValid) return;
-    
+  const handleJoinVibe = async (sessionId: number) => {
     if (activeVibe) {
         alert("You're already in a Vibe. Please leave it before joining another.");
         return;
     }
-    const event = events.find(e => e.id === eventId);
-    if (!event) return;
-
-    try {
-        const newParticipants = [...event.participants, user.id];
-        // FIX: Updating the 'sessions' table.
-        const { data, error } = await supabase
-            .from('sessions')
-            .update({ participants: newParticipants })
-            .eq('id', eventId)
-            .select('*, creator:profiles(username)')
-            .single();
-            
-        if (error) {
-            console.error("Error joining vibe:", error);
-            if (error.message.includes('JWT') || error.message.includes('session')) {
-              setError("Session expired. Please log in again.");
-              setTimeout(() => onLogout(), 2000);
-            }
-        } else {
-            // FIX: Result is cast to 'Session'.
-            setActiveVibe(data as Session);
-        }
-    } catch (err) {
-        console.error("Unexpected error joining vibe:", err);
+    console.log('--- MOCK: Joining Session ---', sessionId);
+    let joinedSession: Session | null = null;
+    setSessions(prev => prev.map(s => {
+      if (s.id === sessionId) {
+        const newParticipants = [...s.participants, user.id];
+        joinedSession = { ...s, participants: newParticipants };
+        return joinedSession;
+      }
+      return s;
+    }));
+    
+    if (joinedSession) {
+      setActiveVibe(joinedSession);
     }
   };
 
-  const handleLeaveVibe = async (eventId: number) => {
-      if (!sessionValid) return;
-      
-      const event = events.find(e => e.id === eventId);
-      if (!event) return;
-
-      try {
-          const newParticipants = event.participants.filter(p => p !== user.id);
-          // FIX: Updating the 'sessions' table.
-          const { error } = await supabase
-              .from('sessions')
-              .update({ participants: newParticipants })
-              .eq('id', eventId);
-              
-          if (error) {
-              console.error("Error leaving vibe:", error);
-              if (error.message.includes('JWT') || error.message.includes('session')) {
-                setError("Session expired. Please log in again.");
-                setTimeout(() => onLogout(), 2000);
-              }
-          } else {
-              setActiveVibe(null);
-              setIsChatVisible(false);
-          }
-      } catch (err) {
-          console.error("Unexpected error leaving vibe:", err);
-      }
+  const handleLeaveVibe = async (sessionId: number) => {
+      console.log('--- MOCK: Leaving Session ---', sessionId);
+      setSessions(prev => prev.map(s => {
+        if (s.id === sessionId) {
+          return { ...s, participants: s.participants.filter(pId => pId !== user.id) };
+        }
+        return s;
+      }));
+      setActiveVibe(null);
+      setIsChatVisible(false);
   };
 
   const handleSendMessage = async (text: string) => {
-      if (!activeVibe || !sessionValid) return;
-
-      try {
-          const { error } = await supabase
-              .from('messages')
-              .insert({
-                  text,
-                  sender_id: user.id,
-                  // FIX: Using 'session_id' instead of 'event_id'.
-                  session_id: activeVibe.id,
-              });
-              
-          if (error) {
-              console.error("Error sending message:", error);
-              if (error.message.includes('JWT') || error.message.includes('session')) {
-                setError("Session expired. Please log in again.");
-                setTimeout(() => onLogout(), 2000);
-              }
-          }
-      } catch (err) {
-          console.error("Unexpected error sending message:", err);
-      }
+      if (!activeVibe) return;
+      console.log('--- MOCK: Sending Message ---', text);
+      const newMessage: SessionMessage = {
+        id: Math.floor(Math.random() * 10000),
+        sender_id: user.id,
+        session_id: activeVibe.id,
+        text: text,
+        created_at: new Date().toISOString(),
+        sender: { username: user.profile.username },
+      };
+      setChatMessages(prev => [...prev, newMessage]);
   };
 
   const handleOpenProfile = async (username: string) => {
-      if (!sessionValid) return;
-      
-      try {
-          const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('username', username)
-              .single();
-              
-          if(error) {
-               console.error("Could not find user to view profile for:", username, error);
-               if (error.message.includes('JWT') || error.message.includes('session')) {
-                 setError("Session expired. Please log in again.");
-                 setTimeout(() => onLogout(), 2000);
-               }
-               return;
-          }
-          if (profile) {
-              const userToView: User = {
-                  id: profile.id,
-                  profile: {
-                    username: profile.username,
-                    bio: profile.bio,
-                    privacy: profile.privacy,
-                    // FIX: Added missing properties to satisfy the Profile type definition.
-                    branch: profile.branch,
-                    year: profile.year,
-                    expertise: profile.expertise,
-                    interests: profile.interests,
-                    cookieScore: profile.cookieScore
-                  }
-              };
-              setViewedUser(userToView);
-              setIsProfileModalOpen(true);
-          }
-      } catch (err) {
-          console.error("Unexpected error opening profile:", err);
-      }
+      console.log('--- MOCK: Opening Profile ---', username);
+      // In a real app, we'd fetch this. In mock, we can't.
+      // We'll just show an alert.
+      alert(`Mock Mode: Cannot open profile for ${username}. This feature will be built later.`);
   };
 
   const handleTabClick = (tab: AppTab) => {
@@ -407,45 +183,26 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   };
 
   if (!sessionValid) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-green-50">
-        <div className="text-center p-4">
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <p className="text-gray-800 text-lg mb-4">Session validation failed...</p>
-          <p className="text-gray-600">Redirecting to login...</p>
-        </div>
-      </div>
-    );
+    // This should not be reachable in mock mode
+    return null;
   }
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-green-50 flex flex-col">
-      {['Home', 'Social', 'Alerts', 'Profile'].includes(activeTab) && (
+      {/* Render PageHeader on all tabs except Home */}
+      {activeTab !== 'Home' && (
         <PageHeader username={user.profile.username} onLogout={onLogout} />
       )}
-      <main className="flex-grow relative">
+      
+      <main className="flex-grow relative overflow-hidden">
         {error && (
-            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[2000] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg max-w-md w-11/12" role="alert">
-                <div className="flex justify-between items-center">
-                    <div className="flex-grow">
-                        <strong className="font-bold">Error:</strong>
-                        <span className="block sm:inline ml-2">{error}</span>
-                    </div>
-                    <button 
-                        onClick={() => setError(null)} 
-                        className="text-red-700 hover:text-red-900 ml-4 flex-shrink-0"
-                        aria-label="Dismiss error"
-                    >
-                        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                    </button>
-                </div>
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg max-w-md w-11/12" role="alert">
+                {/* ... error content ... */}
             </div>
         )}
         
           {/* Home Tab Content */}
-          <div className={`h-full w-full ${activeTab === 'Home' ? '' : 'hidden'}`}>
+          <div className={`h-full w-full ${activeTab === 'Home' ? 'block' : 'hidden'}`}>
             <MapView 
               ref={mapViewRef}
               isVisible={activeTab === 'Home'}
@@ -453,7 +210,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
               userLocation={userLocation}
               onSetUserLocation={setUserLocation}
               onMapClick={handleMapClickInCreateMode}
-              events={events}
+              events={sessions} // Pass 'sessions' state
               user={user}
               activeVibe={activeVibe}
               onCloseEvent={handleCloseEvent}
@@ -474,17 +231,17 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
           </div>
 
           {/* Social Tab Content */}
-          <div className={`h-full ${activeTab === 'Social' ? '' : 'hidden'}`}>
+          <div className={`h-full overflow-y-auto ${activeTab === 'Social' ? 'block' : 'hidden'}`}>
             <SocialPage />
           </div>
 
           {/* Alerts Tab Content */}
-          <div className={`h-full ${activeTab === 'Alerts' ? '' : 'hidden'}`}>
+          <div className={`h-full overflow-y-auto ${activeTab === 'Alerts' ? 'block' : 'hidden'}`}>
             <AlertsPage />
           </div>
 
           {/* Profile Tab Content */}
-          <div className={`h-full ${activeTab === 'Profile' ? '' : 'hidden'}`}>
+          <div className={`h-full overflow-y-auto ${activeTab === 'Profile' ? 'block' : 'hidden'}`}>
             <ProfilePage />
           </div>
         
@@ -512,6 +269,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
                 onViewProfile={handleOpenProfile}
             />
         )}
+        {/* We keep SettingsModal for now, although it will be removed later */}
         <SettingsModal 
             isOpen={isSettingsModalOpen}
             onClose={() => setIsSettingsModalOpen(false)}

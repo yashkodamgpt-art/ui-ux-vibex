@@ -12,14 +12,16 @@ interface ProfileQuickViewProps {
 const ProfileQuickView: React.FC<ProfileQuickViewProps> = ({ isOpen, onClose, user, onEditProfile }) => {
     if (!isOpen) return null;
 
+    // FIX: The 'community' privacy option does not exist in the User type.
+    // Replaced with 'friends' to match the type definition and prevent runtime errors.
     const privacyColor = {
         public: 'bg-green-100 text-green-800',
-        community: 'bg-blue-100 text-blue-800',
+        friends: 'bg-blue-100 text-blue-800',
         private: 'bg-gray-100 text-gray-800',
     };
     const privacyText = {
         public: 'Public',
-        community: 'Community',
+        friends: 'Friends',
         private: 'Private',
     };
 

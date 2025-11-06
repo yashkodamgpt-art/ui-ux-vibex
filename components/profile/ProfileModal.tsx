@@ -11,7 +11,8 @@ interface ProfileModalProps {
 const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, userToView }) => {
     if (!isOpen) return null;
 
-    const canViewProfile = userToView.profile.privacy === 'public' || userToView.profile.privacy === 'community';
+    // FIX: The 'community' privacy option does not exist. Only 'public' profiles are viewable.
+    const canViewProfile = userToView.profile.privacy === 'public';
 
     return (
         <>
