@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { User, Session, SessionMessage, Profile, SessionType } from './types';
+import type { User, Session, SessionMessage, Profile, SessionType, Friend } from './types';
 import MapView, { type MapViewRef } from './components/map/MapView';
 import CreateEventModal from './components/events/CreateEventModal';
 import MyLocationButton from './components/common/MyLocationButton';
@@ -19,6 +19,18 @@ import { MOCK_SESSIONS } from './lib/mockData';
 
 // --- NEW IMPORTS ---
 import CreateSessionMenu from './components/sessions/CreateSessionMenu';
+import FilterChipBar, { type CampusZoneName, type FilterChip } from './components/filters/FilterChipBar';
+import ConfirmationDialog from './components/common/ConfirmationDialog';
+
+// --- NEW CAMPUS ZONES DEFINITION ---
+const campusZones = {
+  "All": { coords: [23.1925, 72.6844] as [number, number], zoom: 16, radius: 9999 }, // Large radius to include everything
+  "Library": { coords: [23.1930, 72.6840] as [number, number], zoom: 18, radius: 100 },
+  "Hostel Area": { coords: [23.1905, 72.6860] as [number, number], zoom: 17.5, radius: 200 },
+  "Sports Complex": { coords: [23.1945, 72.6825] as [number, number], zoom: 17, radius: 250 },
+  "Mess 1": { coords: [23.1915, 72.6855] as [number, number], zoom: 18, radius: 80 },
+  "Academic Block": { coords: [23.1920, 72.6830] as [number, number], zoom: 17, radius: 200 },
+};
 
 interface MainAppProps {
   user: User;
@@ -32,14 +44,17 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   const [sessions, setSessions] = useState<Session[]>(MOCK_SESSIONS);
   const [activeVibe, setActiveVibe] = useState<Session | null>(null);
   
-  // --- NEW CREATE FLOW STATE ---
+  // --- CREATE FLOW STATE ---
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const [isPlacementMode, setIsPlacementMode] = useState(false);
   const [selectedSessionType, setSelectedSessionType] = useState<SessionType | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newEventCoords, setNewEventCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Old states
+  // --- NEW FILTER STATE ---
+  const [activeFilter, setActiveFilter] = useState<CampusZoneName>('All');
+
+  // Other states
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [chatMessages, setChatMessages] = useState<SessionMessage[]>([]);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -49,16 +64,46 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   const [error, setError] = useState<string | null>(null);
   const mapViewRef = useRef<MapViewRef>(null);
   const [sessionValid, setSessionValid] = useState(true); // Always true in mock mode
+  const [confirmation, setConfirmation] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
   useEffect(() => {
     console.log('🎯 MainApp mounted for user:', user.profile.username);
   }, [user]);
 
-  // --- MOCK DATA LOGIC (Supabase calls are commented out) ---
+  // --- FILTER LOGIC ---
+  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3; // metres
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
 
-  // --- NEW HANDLERS FOR CREATE FLOW ---
+  const filterChips: FilterChip[] = (Object.keys(campusZones) as CampusZoneName[]).map(name => {
+      const zone = campusZones[name];
+      const count = sessions.filter(s => {
+          if (name === 'All') return true;
+          const distance = getDistance(s.lat, s.lng, zone.coords[0], zone.coords[1]);
+          return distance <= zone.radius;
+      }).length;
+      return { name, count };
+  });
 
-  // Helper function to reset the entire creation flow
+  const filteredSessions = sessions.filter(s => {
+      if (activeFilter === 'All') return true;
+      const zone = campusZones[activeFilter];
+      const distance = getDistance(s.lat, s.lng, zone.coords[0], zone.coords[1]);
+      return distance <= zone.radius;
+  });
+
+  const handleFilterSelect = (filter: CampusZoneName) => {
+      setActiveFilter(filter);
+  };
+  
+  // --- HANDLERS FOR CREATE FLOW ---
   const handleCancelCreate = useCallback(() => {
     setIsCreateMenuOpen(false);
     setIsPlacementMode(false);
@@ -67,23 +112,20 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
     setNewEventCoords(null);
   }, []);
 
-  // Step 1: User clicks the purple '+' button
   const handleCreateButtonClick = () => {
     if (isCreateMenuOpen || isPlacementMode) {
-        handleCancelCreate(); // If it's already open, cancel
+        handleCancelCreate();
     } else {
-        setIsCreateMenuOpen(true); // Open the menu
+        setIsCreateMenuOpen(true);
     }
   };
   
-  // Step 2: User selects a session type from the menu
   const handleSelectSessionType = (type: SessionType) => {
     setSelectedSessionType(type);
-    setIsPlacementMode(true); // Turn on "click map" mode
+    setIsPlacementMode(true);
     setIsCreateMenuOpen(false);
   };
 
-  // Step 3: User clicks on the map to place the session
   const handleMapPlacement = (coords: { lat: number; lng: number }) => {
     if (activeVibe) {
         alert("You are already in a Vibe. Leave or close your current Vibe to create a new one.");
@@ -91,14 +133,12 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
         return;
     }
     setNewEventCoords(coords);
-    setIsCreateModalOpen(true); // Open the *details* modal
-    setIsPlacementMode(false); // Turn off "click map" mode
+    setIsCreateModalOpen(true);
+    setIsPlacementMode(false);
   };
 
-  // Step 4: User submits the details modal
   const handleCreateEvent = async (eventData: Omit<Session, 'id' | 'creator' | 'creator_id' | 'lat' | 'lng' | 'participants' | 'creator'>) => {
     if (!newEventCoords || !sessionValid) return;
-    console.log('--- MOCK: Creating Event ---', eventData);
     
     const newSession: Session = {
       ...eventData,
@@ -108,23 +148,20 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
       creator_id: user.id,
       participants: [user.id],
       creator: { username: user.profile.username },
-      // This is now passed from the modal, but we keep the fallback
       sessionType: selectedSessionType || 'vibe', 
     };
     
     setSessions(prevSessions => [...prevSessions, newSession]);
     setActiveVibe(newSession);
-    handleCancelCreate(); // Reset everything
+    handleCancelCreate();
   };
   
   // --- Other Mock Handlers ---
-
   const handleRecenterMap = () => {
     mapViewRef.current?.recenter();
   };
 
   const handleCloseEvent = async (sessionId: number) => {
-    console.log('--- MOCK: Closing Session ---', sessionId);
     setSessions(prev => prev.filter(s => s.id !== sessionId));
     if (activeVibe?.id === sessionId) {
       setActiveVibe(null);
@@ -132,10 +169,9 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
     }
   };
 
-  const handleExtendEvent = async (sessionId: number) => {
-      console.log('--- MOCK: Extending Session ---', sessionId);
+  const handleExtendEvent = async (sessionId: number, minutes: number) => {
       setSessions(prev => prev.map(s => 
-        s.id === sessionId ? { ...s, duration: s.duration + 15 } : s
+        s.id === sessionId ? { ...s, duration: s.duration + minutes } : s
       ));
   };
 
@@ -144,7 +180,6 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
         alert("You're already in a Vibe. Please leave it before joining another.");
         return;
     }
-    console.log('--- MOCK: Joining Session ---', sessionId);
     let joinedSession: Session | null = null;
     setSessions(prev => prev.map(s => {
       if (s.id === sessionId) {
@@ -161,7 +196,6 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   };
 
   const handleLeaveVibe = async (sessionId: number) => {
-      console.log('--- MOCK: Leaving Session ---', sessionId);
       setSessions(prev => prev.map(s => {
         if (s.id === sessionId) {
           return { ...s, participants: s.participants.filter(pId => pId !== user.id) };
@@ -174,7 +208,6 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
 
   const handleSendMessage = async (text: string) => {
       if (!activeVibe) return;
-      console.log('--- MOCK: Sending Message ---', text);
       const newMessage: SessionMessage = {
         id: Math.floor(Math.random() * 10000),
         sender_id: user.id,
@@ -187,23 +220,41 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   };
 
   const handleOpenProfile = async (username: string) => {
-      console.log('--- MOCK: Opening Profile ---', username);
       alert(`Mock Mode: Cannot open profile for ${username}. This feature will be built later.`);
+  };
+
+  const handleViewFriendProfile = (friend: Friend) => {
+      const userToView: User = {
+        id: friend.id,
+        email: `${friend.username.toLowerCase()}@campus.dev`,
+        profile: {
+          username: friend.username,
+          bio: `A ${friend.branch} student graduating in ${friend.year}.`,
+          branch: friend.branch,
+          year: friend.year,
+          expertise: [],
+          interests: [],
+          cookieScore: friend.cookieScore,
+          privacy: 'public',
+          skillScores: {},
+          vouchHistory: [],
+        }
+      };
+      setViewedUser(userToView);
+      setIsProfileModalOpen(true);
   };
 
   const handleTabClick = (tab: AppTab) => {
     setActiveTab(tab);
   };
 
-  if (!sessionValid) {
-    return null;
-  }
-
   return (
     <div className="h-screen w-screen overflow-hidden bg-green-50 flex flex-col">
-      {/* Conditionally render header based on active tab */}
       {activeTab === 'Home' ? (
-        <HomeHeader user={user} onOpenProfile={() => setIsProfileQuickViewOpen(true)} />
+        <>
+          <HomeHeader user={user} onOpenProfile={() => setIsProfileQuickViewOpen(true)} />
+          <FilterChipBar filters={filterChips} activeFilter={activeFilter} onSelectFilter={handleFilterSelect} />
+        </>
       ) : (
         <PageHeader username={user.profile.username} onLogout={onLogout} />
       )}
@@ -215,34 +266,33 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
             </div>
         )}
         
-          {/* Home Tab Content */}
           <div className={`h-full w-full ${activeTab === 'Home' ? 'block' : 'hidden'}`}>
             <MapView 
               ref={mapViewRef}
               isVisible={activeTab === 'Home'}
-              isCreateMode={isPlacementMode} // <-- Use isPlacementMode
+              isCreateMode={isPlacementMode}
               userLocation={userLocation}
               onSetUserLocation={setUserLocation}
-              onMapClick={handleMapPlacement} // <-- Use new handler
-              events={sessions} 
+              onMapClick={handleMapPlacement}
+              events={filteredSessions} 
               user={user}
               activeVibe={activeVibe}
               onCloseEvent={handleCloseEvent}
               onExtendEvent={handleExtendEvent}
               onJoinVibe={handleJoinVibe}
               onViewChat={() => setIsChatVisible(true)}
+              activeFilter={activeFilter}
+              campusZones={campusZones}
             />
             <div className="fixed bottom-20 right-6 z-[1000] flex flex-col items-center space-y-4">
               <MyLocationButton 
                 onClick={handleRecenterMap} 
                 disabled={!userLocation} 
               />
-              {/* Render the new expanding menu */}
               <CreateSessionMenu 
                 isOpen={isCreateMenuOpen}
                 onSelectType={handleSelectSessionType}
               />
-              {/* This button now controls the menu */}
               <CreateEventButton 
                 onClick={handleCreateButtonClick} 
                 isActive={isCreateMenuOpen || isPlacementMode} 
@@ -250,29 +300,16 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
             </div>
           </div>
 
-          {/* Social Tab Content */}
-          <div className={`h-full overflow-y-auto ${activeTab === 'Social' ? 'block' : 'hidden'}`}>
-            <SocialPage />
-          </div>
-
-          {/* Alerts Tab Content */}
-          <div className={`h-full overflow-y-auto ${activeTab === 'Alerts' ? 'block' : 'hidden'}`}>
-            <AlertsPage />
-          </div>
-
-          {/* Profile Tab Content */}
-          <div className={`h-full overflow-y-auto ${activeTab === 'Profile' ? 'block' : 'hidden'}`}>
-            <ProfilePage />
-          </div>
+          <div className={`h-full overflow-y-auto ${activeTab === 'Social' ? 'block' : 'hidden'}`}><SocialPage user={user} onViewFriendProfile={handleViewFriendProfile} setConfirmation={setConfirmation} /></div>
+          <div className={`h-full overflow-y-auto ${activeTab === 'Alerts' ? 'block' : 'hidden'}`}><AlertsPage user={user} /></div>
+          <div className={`h-full overflow-y-auto ${activeTab === 'Profile' ? 'block' : 'hidden'}`}><ProfilePage user={user} onProfileUpdate={onProfileUpdate} sessions={sessions} /></div>
         
-        {/* Pass the selected session type to the modal */}
         <CreateEventModal 
           isOpen={isCreateModalOpen}
           onClose={handleCancelCreate}
           onSubmit={handleCreateEvent}
           sessionType={selectedSessionType}
         />
-
         {activeVibe && (
             <VibeChatPanel
                 isOpen={isChatVisible}
@@ -306,8 +343,17 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
         {viewedUser && (
             <ProfileModal
                 isOpen={isProfileModalOpen}
-                onClose={() => setIsProfileModalOpen(false)}
+                onClose={() => { setViewedUser(null); setIsProfileModalOpen(false); }}
                 userToView={viewedUser}
+            />
+        )}
+        {confirmation && (
+            <ConfirmationDialog
+                isOpen={true}
+                title={confirmation.title}
+                message={confirmation.message}
+                onConfirm={confirmation.onConfirm}
+                onCancel={() => setConfirmation(null)}
             />
         )}
       </main>

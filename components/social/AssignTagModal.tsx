@@ -1,0 +1,101 @@
+import React, { useState, useEffect } from 'react';
+import type { Friend, Tag } from '../../types';
+
+interface AssignTagModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  friend: Friend;
+  tags: Tag[];
+  onSave: (friendId: string, selectedTagIds: string[]) => void;
+  onCreateTag: () => void;
+}
+
+const AssignTagModal: React.FC<AssignTagModalProps> = ({ isOpen, onClose, friend, tags, onSave, onCreateTag }) => {
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Pre-select tags the friend is already in
+      const currentTagIds = tags
+        .filter(tag => tag.memberIds.includes(friend.id))
+        .map(tag => tag.id);
+      setSelectedTagIds(currentTagIds);
+    }
+  }, [isOpen, friend, tags]);
+
+  const handleToggleTag = (tagId: string) => {
+    setSelectedTagIds(prev =>
+      prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const handleQuickCreate = () => {
+    onClose();
+    onCreateTag();
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      onSave(friend.id, selectedTagIds);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div 
+        onClick={onClose}
+        className="fixed inset-0 bg-black/50 z-[2000] transition-opacity duration-300 opacity-100" 
+        aria-hidden="true"
+      />
+      <div 
+        className="fixed inset-0 z-[2010] flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="assign-tag-title"
+      >
+        <form onSubmit={handleSubmit} className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 transform transition-all duration-300 scale-100">
+          <h2 id="assign-tag-title" className="text-2xl font-bold text-gray-800">
+            Add <span className="text-green-600">{friend.username}</span> to Tags
+          </h2>
+          
+          <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+            {tags.length > 0 ? tags.map(tag => (
+              <label key={tag.id} className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={selectedTagIds.includes(tag.id)}
+                  onChange={() => handleToggleTag(tag.id)}
+                  className="h-5 w-5 rounded text-green-600 border-gray-300 focus:ring-green-500" 
+                />
+                <span className="ml-4 flex items-center">
+                  <span className="text-xl mr-2">{tag.emoji}</span>
+                  <span className="font-semibold text-gray-800">{tag.name}</span>
+                </span>
+              </label>
+            )) : (
+                <p className="text-center text-gray-500 py-4">No tags created yet.</p>
+            )}
+          </div>
+          
+          <div>
+            <button 
+                type="button" 
+                onClick={handleQuickCreate}
+                className="w-full text-sm text-center text-green-600 font-semibold p-2 rounded-lg hover:bg-green-50"
+            >
+                + Create a New Tag
+            </button>
+          </div>
+
+          <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+            <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Cancel</button>
+            <button type="submit" className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">Save</button>
+          </div>
+        </form>
+      </div>
+    </>
+  );
+};
+
+export default AssignTagModal;

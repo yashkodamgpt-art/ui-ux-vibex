@@ -28,6 +28,72 @@
       border-radius: 50%;
       box-shadow: 0 0 10px rgba(168, 85, 247, 0.8);
       animation: pulse 2s infinite;
+      position: relative; /* Needed for positioning child elements */
+    }
+
+    /* NEW: Styles for scheduled (upcoming) sessions */
+    .event-marker.scheduled .emoji-container {
+      opacity: 0.5;
+      filter: grayscale(50%);
+    }
+    .event-marker.scheduled::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(200, 200, 200, 0.2);
+      border-radius: 50%;
+    }
+    .countdown-timer {
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 1px 5px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    
+    /* NEW: Green "live" indicator for active sessions */
+    .active-indicator {
+      position: absolute;
+      bottom: 0px;
+      right: 0px;
+      width: 10px;
+      height: 10px;
+      background-color: #22c55e; /* green-500 */
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 0 5px #22c55e;
+    }
+    
+    /* NEW: Styles for participant avatars in popups */
+    .participant-avatars {
+      display: flex;
+      align-items: center;
+    }
+    .avatar-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 12px;
+      border: 2px solid white;
+      margin-left: -8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .avatar-circle:first-child {
+      margin-left: 0;
     }
 
     @keyframes pulse {
@@ -43,6 +109,22 @@
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(147, 51, 234, 0);
       }
+    }
+
+    /* NEW: Styles for FilterChipBar */
+    .filter-chip-bar {
+      display: flex;
+      gap: 8px; /* space between chips */
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch; /* Momentum scrolling on iOS */
+      scrollbar-width: none; /* Firefox */
+      scroll-snap-type: x mandatory;
+      padding-bottom: 8px; /* Add some padding so shadow is visible */
+    }
+
+    .filter-chip-bar::-webkit-scrollbar {
+      display: none; /* Safari and Chrome */
     }
   </style>
   <script type="importmap">

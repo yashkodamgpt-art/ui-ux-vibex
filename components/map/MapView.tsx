@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-// FIX: The 'Event' type has been replaced with the new 'Session' type.
 import type { Session, User } from '../../types';
+import type { CampusZoneName } from '../filters/FilterChipBar';
 
 declare const L: any;
 
@@ -15,28 +15,60 @@ interface MapViewProps {
   userLocation: [number, number] | null;
   onSetUserLocation: (coords: [number, number]) => void;
   onMapClick: (coords: { lat: number, lng: number }) => void;
-  // FIX: The 'events' prop now expects an array of 'Session' objects.
   events: Session[];
   user: User;
-  // FIX: The 'activeVibe' prop is now of type 'Session'.
   activeVibe: Session | null;
   onCloseEvent: (eventId: number) => void;
-  onExtendEvent: (eventId: number) => void;
+  onExtendEvent: (eventId: number, minutes: number) => void;
   onJoinVibe: (eventId: number) => void;
   onViewChat: () => void;
   isVisible: boolean;
+  activeFilter: CampusZoneName;
+  campusZones: { [key in CampusZoneName]: { coords: [number, number]; zoom: number; radius: number } };
 }
 
 export interface MapViewRef {
   recenter: () => void;
 }
 
-const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocation, onSetUserLocation, onMapClick, events, user, activeVibe, onCloseEvent, onExtendEvent, onJoinVibe, onViewChat, isVisible }, ref) => {
+// --- HELPER FUNCTIONS ---
+
+function formatRemainingTime(minutes: number): string {
+    if (minutes < 1) return 'Ending soon';
+    if (minutes < 60) return `Ends in ${Math.round(minutes)}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.round(minutes % 60);
+    return `Ends in ${hours}h ${mins}m`;
+}
+
+// Simple hash to get a color from a string (for avatars)
+const stringToColor = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+        const value = (hash >> (i * 8)) & 0xFF;
+        color += ('00' + value.toString(16)).substr(-2);
+    }
+    return color;
+}
+
+const generateAvatar = (participantId: string, username?: string): string => {
+    const initial = (username || participantId).charAt(0).toUpperCase();
+    const color = stringToColor(participantId);
+    return `<div class="avatar-circle" style="background-color: ${color};">${initial}</div>`;
+};
+
+
+const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocation, onSetUserLocation, onMapClick, events, user, activeVibe, onCloseEvent, onExtendEvent, onJoinVibe, onViewChat, isVisible, activeFilter, campusZones }, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const radiusCircleRef = useRef<any>(null);
   const eventsLayerRef = useRef<any>(null);
   const userMarkerRef = useRef<any>(null);
+  const [now, setNow] = useState(() => new Date());
 
   const [displayCoords, setDisplayCoords] = useState<{ lat: number; lng: number }>({ lat: IITGN_COORDS[0], lng: IITGN_COORDS[1] });
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +81,12 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
       }
     }
   }));
+
+  // Effect to update current time every minute
+  useEffect(() => {
+      const timerId = setInterval(() => setNow(new Date()), 60000);
+      return () => clearInterval(timerId);
+  }, []);
 
   // Effect 1: Initialize map instance
   useEffect(() => {
@@ -128,12 +166,18 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
   useEffect(() => {
     if (isVisible && mapInstanceRef.current) {
       console.log('🗺️ Map became visible, invalidating size.');
-      // Delay it slightly to ensure the container has its final dimensions
-      setTimeout(() => {
-        mapInstanceRef.current.invalidateSize();
-      }, 100);
+      setTimeout(() => mapInstanceRef.current.invalidateSize(), 100);
     }
   }, [isVisible]);
+
+  // Effect to pan/zoom map on filter change
+  useEffect(() => {
+      if (mapInstanceRef.current && activeFilter && campusZones[activeFilter]) {
+          const zone = campusZones[activeFilter];
+          console.log(`🗺️ Filter changed to "${activeFilter}". Flying to [${zone.coords[0]}, ${zone.coords[1]}]`);
+          mapInstanceRef.current.flyTo(zone.coords, zone.zoom);
+      }
+  }, [activeFilter, campusZones]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -186,80 +230,110 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
     if (!layer || !map || !user) return;
 
     layer.clearLayers();
-    const now = new Date().getTime();
     
-    const activeEvents = events.filter(event => {
-        if (event.status !== 'active') return false;
-        const endTime = new Date(event.event_time).getTime() + event.duration * 60 * 1000;
-        return now < endTime;
+    events.forEach(event => {
+        const startTime = new Date(event.event_time).getTime();
+        const endTime = startTime + event.duration * 60 * 1000;
+        const nowTime = now.getTime();
+
+        if (event.status !== 'active' || nowTime > endTime) return;
+
+        const isScheduled = startTime > nowTime;
+        const isActive = !isScheduled;
+        const minutesToStart = (startTime - nowTime) / 60000;
+
+        if (isScheduled && minutesToStart <= 5) return; // Ignore scheduled events starting in less than 5 mins for this logic
+
+        const participantCount = event.participants?.length || 1;
+        const markerSize = Math.min(32 + (participantCount - 1) * 4, 56);
+
+        let markerHtml = `<div class="emoji-container" style="font-size: ${markerSize * 0.7}px; text-align: center; line-height: ${markerSize}px;">${event.emoji}</div>`;
+        if (isActive) {
+            markerHtml += '<div class="active-indicator"></div>';
+        } else { // isScheduled
+            markerHtml += `<div class="countdown-timer">Starts in ${Math.round(minutesToStart)}m</div>`;
+        }
+
+        const eventIcon = L.divIcon({
+            className: `event-marker ${isActive ? 'active' : 'scheduled'}`,
+            html: markerHtml,
+            iconSize: [markerSize, markerSize],
+        });
+      
+        const eventMarker = L.marker([event.lat, event.lng], { icon: eventIcon }).addTo(layer);
+        
+        // --- Popup Logic ---
+        const popupNode = document.createElement('div');
+        popupNode.className = "p-1 font-sans";
+
+        let avatarsHtml = event.participants.map(pId => generateAvatar(pId, pId === event.creator_id ? event.creator.username : undefined)).join('');
+
+        let timeStatusHtml = '';
+        if (isActive) {
+            if (event.participants.includes(user.id)) {
+                const minutesToEnd = (endTime - nowTime) / 60000;
+                timeStatusHtml = `<p class="text-sm font-bold text-green-600">${formatRemainingTime(minutesToEnd)}</p>`;
+            } else {
+                timeStatusHtml = `<p class="text-xs text-gray-500">Ends at: ${new Date(endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>`;
+            }
+        } else { // Scheduled
+            timeStatusHtml = `<p class="text-xs text-gray-500">Starts at: ${new Date(startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>`;
+        }
+        
+        popupNode.innerHTML = `
+            <h3 class="font-bold text-lg text-purple-800">${event.title}</h3>
+            ${event.description ? `<p class="text-gray-700 my-1">${event.description}</p>` : ''}
+            <div class="flex items-center justify-between mt-2">
+                <div class="participant-avatars">${avatarsHtml}</div>
+                ${timeStatusHtml}
+            </div>
+        `;
+        
+        const controlsContainer = document.createElement('div');
+        controlsContainer.className = "mt-2 pt-2 border-t border-gray-200 flex flex-wrap items-center gap-2";
+
+        if (user.id === event.creator_id) {
+            const extend5mButton = document.createElement('button');
+            extend5mButton.className = "text-xs bg-green-100 text-green-800 font-semibold px-2 py-1 rounded hover:bg-green-200 transition-colors";
+            extend5mButton.innerText = "+5m";
+            controlsContainer.appendChild(extend5mButton);
+            L.DomEvent.on(extend5mButton, 'click', () => { onExtendEvent(event.id, 5); map.closePopup(); });
+            
+            const extend15mButton = document.createElement('button');
+            extend15mButton.className = "text-xs bg-green-100 text-green-800 font-semibold px-2 py-1 rounded hover:bg-green-200 transition-colors";
+            extend15mButton.innerText = "+15m";
+            controlsContainer.appendChild(extend15mButton);
+            L.DomEvent.on(extend15mButton, 'click', () => { onExtendEvent(event.id, 15); map.closePopup(); });
+
+            const closeButton = document.createElement('button');
+            closeButton.className = "text-xs bg-red-100 text-red-800 font-semibold px-2 py-1 rounded hover:bg-red-200 transition-colors ml-auto";
+            closeButton.innerText = "Close Vibe";
+            controlsContainer.appendChild(closeButton);
+            L.DomEvent.on(closeButton, 'click', () => { onCloseEvent(event.id); map.closePopup(); });
+        }
+
+        if (event.participants.includes(user.id)) {
+            const viewChatButton = document.createElement('button');
+            viewChatButton.className = "w-full text-center font-bold bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors";
+            viewChatButton.innerText = "View Chat";
+            controlsContainer.appendChild(viewChatButton);
+            L.DomEvent.on(viewChatButton, 'click', () => { onJoinVibe(event.id); onViewChat(); map.closePopup(); });
+        } else {
+            const joinButton = document.createElement('button');
+            joinButton.className = "w-full text-center font-bold bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed";
+            joinButton.innerText = "Join Vibe";
+            if (activeVibe) {
+                joinButton.disabled = true;
+                joinButton.innerText = "In another Vibe";
+            }
+            controlsContainer.appendChild(joinButton);
+            L.DomEvent.on(joinButton, 'click', () => { onJoinVibe(event.id); map.closePopup(); });
+        }
+        
+        if(controlsContainer.hasChildNodes()) popupNode.appendChild(controlsContainer);
+        eventMarker.bindPopup(popupNode);
     });
-
-    activeEvents.forEach(event => {
-      // FIX: Removed check for 'is_public' as it's not part of the Session type.
-      // if (!event.is_public && event.creator_id !== user.id) return;
-
-      const participantCount = event.participants?.length || 1;
-      const markerSize = Math.min(24 + (participantCount - 1) * 4, 48);
-
-      const eventIcon = L.divIcon({
-        className: 'event-marker',
-        html: `<div style="font-size: ${markerSize * 0.7}px; text-align: center; line-height: ${markerSize}px;">${event.emoji}</div>`,
-        iconSize: [markerSize, markerSize],
-      });
-      
-      const eventMarker = L.marker([event.lat, event.lng], { icon: eventIcon }).addTo(layer);
-      
-      const popupNode = document.createElement('div');
-      popupNode.className = "p-1 font-sans";
-      popupNode.innerHTML = `
-        <h3 class="font-bold text-lg text-purple-800">${event.title}</h3>
-        ${event.description ? `<p class="text-gray-700 my-1">${event.description}</p>` : ''}
-        <div class="flex flex-wrap gap-1 my-2">
-          ${/* FIX: Removed 'topics' as it's not part of the Session type. */''}
-        </div>
-        <p class="text-xs text-gray-500">Ends at: ${new Date(new Date(event.event_time).getTime() + event.duration * 60 * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-        <p class="text-xs text-gray-500 font-medium">👥 ${participantCount} ${participantCount > 1 ? 'Vibing' : 'Vibing'}</p>
-      `;
-      
-      const controlsContainer = document.createElement('div');
-      controlsContainer.className = "mt-2 pt-2 border-t border-gray-200 flex flex-wrap items-center gap-2";
-
-      if (user.id === event.creator_id) {
-          const extendButton = document.createElement('button');
-          extendButton.className = "text-xs bg-green-100 text-green-800 font-semibold px-2 py-1 rounded hover:bg-green-200 transition-colors";
-          extendButton.innerText = "Extend (+15m)";
-          controlsContainer.appendChild(extendButton);
-          L.DomEvent.on(extendButton, 'click', () => { onExtendEvent(event.id); map.closePopup(); });
-
-          const closeButton = document.createElement('button');
-          closeButton.className = "text-xs bg-red-100 text-red-800 font-semibold px-2 py-1 rounded hover:bg-red-200 transition-colors";
-          closeButton.innerText = "Close Vibe";
-          controlsContainer.appendChild(closeButton);
-          L.DomEvent.on(closeButton, 'click', () => { onCloseEvent(event.id); map.closePopup(); });
-      }
-
-      if (event.participants.includes(user.id)) {
-          const viewChatButton = document.createElement('button');
-          viewChatButton.className = "w-full text-center font-bold bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors";
-          viewChatButton.innerText = "View Chat";
-          controlsContainer.appendChild(viewChatButton);
-          L.DomEvent.on(viewChatButton, 'click', () => { onJoinVibe(event.id); onViewChat(); map.closePopup(); });
-      } else {
-          const joinButton = document.createElement('button');
-          joinButton.className = "w-full text-center font-bold bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed";
-          joinButton.innerText = "Join Vibe";
-          if (activeVibe) {
-              joinButton.disabled = true;
-              joinButton.innerText = "In another Vibe";
-          }
-          controlsContainer.appendChild(joinButton);
-          L.DomEvent.on(joinButton, 'click', () => { onJoinVibe(event.id); map.closePopup(); });
-      }
-      
-      if(controlsContainer.hasChildNodes()) popupNode.appendChild(controlsContainer);
-      eventMarker.bindPopup(popupNode);
-    });
-  }, [events, user, activeVibe, onCloseEvent, onExtendEvent, onJoinVibe, onViewChat]);
+  }, [events, user, activeVibe, onCloseEvent, onExtendEvent, onJoinVibe, onViewChat, now]);
 
   return (
     <div className="relative w-full h-full bg-green-200 z-0">

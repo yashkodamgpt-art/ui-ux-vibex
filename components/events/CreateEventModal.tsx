@@ -9,6 +9,14 @@ interface CreateEventModalProps {
     sessionType: SessionType | null;
 }
 
+// --- NEW EMOJI DATA ---
+const emojiLists = {
+  vibe: ['🎉', '🎮', '🏀', '⚽', '🎵', '🎬', '📚', '☕', '🍕'],
+  seek: ['🙋', '💡', '🆘', '📖', '🧮', '💻', '🔬'],
+  cookie: ['🍪', '🎓', '💼', '🎨', '🎸', '🏋️'],
+  borrow: ['🤝', '🔧', '📐', '🎒', '🚲', '☂️'],
+};
+
 const sessionConfigs = {
   vibe: { title: 'Vibe', emoji: '🎉', flow: 'offering' as const, color: 'purple', placeholder: "e.g., Sunset Movie Night" },
   seek: { title: 'Seek Session', emoji: '🙋', flow: 'seeking' as const, color: 'blue', placeholder: "e.g., Help with Calculus problem" },
@@ -16,23 +24,41 @@ const sessionConfigs = {
   borrow: { title: 'Borrow Request', emoji: '🤝', flow: 'seeking' as const, color: 'green', placeholder: "e.g., Need a T-Square for class" },
 };
 
-
 const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, onSubmit, sessionType }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [eventTimeOffset, setEventTimeOffset] = useState(5); // in minutes
-    const [duration, setDuration] = useState(60); // in minutes
+    const [eventTimeOffset, setEventTimeOffset] = useState(5);
+    const [duration, setDuration] = useState(60);
     const [error, setError] = useState('');
 
+    // --- NEW EMOJI STATE ---
+    const [selectedEmoji, setSelectedEmoji] = useState('');
+    const [recentlyUsedEmojis, setRecentlyUsedEmojis] = useState<string[]>([]);
+
+    // Effect to reset state and set default emoji when modal opens/sessionType changes
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && sessionType) {
             setTitle('');
             setDescription('');
             setEventTimeOffset(5);
             setDuration(60);
             setError('');
+            // Set default emoji for the selected session type
+            setSelectedEmoji(sessionConfigs[sessionType].emoji);
         }
-    }, [isOpen]);
+    }, [isOpen, sessionType]);
+    
+    // --- NEW EMOJI HANDLER ---
+    const handleEmojiSelect = (emoji: string) => {
+        setSelectedEmoji(emoji);
+        
+        // Update recently used emojis
+        setRecentlyUsedEmojis(prev => {
+            const filtered = prev.filter(e => e !== emoji);
+            const updated = [emoji, ...filtered];
+            return updated.slice(0, 5);
+        });
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -58,7 +84,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
             duration,
             status: 'active',
             sessionType: sessionType,
-            emoji: config.emoji,
+            emoji: selectedEmoji, // Use the selected emoji from state
             genderFilter: 'neutral',
             flow: config.flow,
         });
@@ -67,13 +93,13 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
     if (!isOpen || !sessionType) return null;
 
     const config = sessionConfigs[sessionType];
+    const currentEmojiList = emojiLists[sessionType];
     const colors = {
-      purple: { ring: 'focus:ring-purple-500', bg: 'bg-purple-600', hoverBg: 'hover:bg-purple-700', text: 'text-purple-600' },
-      blue: { ring: 'focus:ring-blue-500', bg: 'bg-blue-600', hoverBg: 'hover:bg-blue-700', text: 'text-blue-600' },
-      orange: { ring: 'focus:ring-orange-500', bg: 'bg-orange-600', hoverBg: 'hover:bg-orange-700', text: 'text-orange-600' },
-      green: { ring: 'focus:ring-green-600', bg: 'bg-green-600', hoverBg: 'hover:bg-green-700', text: 'text-green-600' },
+      purple: { ring: 'focus:ring-purple-500', bg: 'bg-purple-600', hoverBg: 'hover:bg-purple-700', text: 'text-purple-600', border: 'border-purple-500' },
+      blue: { ring: 'focus:ring-blue-500', bg: 'bg-blue-600', hoverBg: 'hover:bg-blue-700', text: 'text-blue-600', border: 'border-blue-500' },
+      orange: { ring: 'focus:ring-orange-500', bg: 'bg-orange-600', hoverBg: 'hover:bg-orange-700', text: 'text-orange-600', border: 'border-orange-500' },
+      green: { ring: 'focus:ring-green-600', bg: 'bg-green-600', hoverBg: 'hover:bg-green-700', text: 'text-green-600', border: 'border-green-500' },
     }[config.color];
-
 
     return (
         <>
@@ -92,9 +118,41 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
                     <h2 id="create-event-title" className="text-2xl font-bold text-gray-800">Create a New {config.title}</h2>
                     {error && <p className="text-red-500 text-sm">{error}</p>}
                     
+                    {/* --- EMOJI PICKER UI --- */}
+                    <div>
+                        <label className="text-sm font-medium text-gray-700">Choose an Emoji</label>
+                        <div className="mt-2 space-y-3">
+                            {recentlyUsedEmojis.length > 0 && (
+                                <div>
+                                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Recent</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {recentlyUsedEmojis.map(emoji => (
+                                            <button type="button" key={`recent-${emoji}`} onClick={() => handleEmojiSelect(emoji)} className={`w-12 h-12 text-2xl rounded-lg flex items-center justify-center transition-all ${selectedEmoji === emoji ? `border-2 ${colors.border} bg-purple-100` : 'bg-gray-100 hover:bg-gray-200'}`}>
+                                                {emoji}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            <div>
+                                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{config.title} Emojis</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {currentEmojiList.map(emoji => (
+                                        <button type="button" key={emoji} onClick={() => handleEmojiSelect(emoji)} className={`w-12 h-12 text-2xl rounded-lg flex items-center justify-center transition-all ${selectedEmoji === emoji ? `border-2 ${colors.border} bg-purple-100` : 'bg-gray-100 hover:bg-gray-200'}`}>
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div>
                         <label htmlFor="title" className="text-sm font-medium text-gray-700">Title</label>
-                        <input id="title" type="text" value={title} onChange={e => setTitle(e.target.value)} required className={`mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${colors.ring}`} placeholder={config.placeholder} />
+                        <div className="flex items-center gap-3 mt-1">
+                            <span className="text-3xl">{selectedEmoji}</span>
+                            <input id="title" type="text" value={title} onChange={e => setTitle(e.target.value)} required className={`block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${colors.ring}`} placeholder={config.placeholder} />
+                        </div>
                     </div>
 
                     <div>

@@ -14,6 +14,9 @@ export interface Profile {
   interests: string[]; // e.g., ["Chess", "Football"]
   cookieScore: number; // Our new "Cookie Score"
   privacy: 'public' | 'friends' | 'private';
+  // NEW: Fields for Cookie Score dashboard
+  skillScores: { [key: string]: number };
+  vouchHistory: Vouch[];
 }
 
 /**
@@ -81,5 +84,92 @@ export interface SessionMessage {
   created_at: string;
   sender: { username: string }; // Joined from profiles table
 }
+
+/**
+ * NEW: Represents a user in the friends list.
+ */
+export interface Friend {
+  id: string;
+  username: string;
+  branch: string;
+  year: number;
+  cookieScore: number;
+  mutualFriends: number;
+}
+
+/**
+ * NEW: Represents a custom tag for organizing friends.
+ */
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  emoji: string;
+  memberIds: string[];
+}
+
+/**
+ * NEW: Represents a friend request between two users.
+ */
+export interface FriendRequest {
+  fromUserId: string;
+  toUserId: string;
+}
+
+/**
+ * NEW: Represents a single direct message between users.
+ */
+export interface DirectMessage {
+  id: string;
+  senderId: string;
+  text: string;
+  timestamp: string; // ISO String
+}
+
+/**
+ * NEW: Represents a conversation thread between two users.
+ */
+export interface Conversation {
+  id: string;
+  participantIds: string[];
+  messages: DirectMessage[];
+  unreadCount: number;
+}
+
+/**
+ * NEW: Defines the types of notifications in the app.
+ */
+export type NotificationType =
+  | 'session_invite'
+  | 'friend_request_received'
+  | 'friend_request_accepted'
+  | 'session_join'
+  | 'session_ending_soon'
+  | 'tag_add';
+
+/**
+ * NEW: Represents a single notification item.
+ */
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  user?: { id: string; username: string }; // User who triggered the notification
+  session?: { id: number; title: string; emoji: string }; // Related session
+  tag?: { id: string; name: string }; // Related tag
+  timestamp: string; // ISO String
+  isRead: boolean;
+}
+
+/**
+ * NEW: Represents a vouch given from one user to another for a skill.
+ */
+export interface Vouch {
+  id: string;
+  voucherUsername: string;
+  skill: string;
+  points: number;
+  timestamp: string; // ISO String
+}
+
 
 // We are removing the old 'Note' and 'Topic' types as they are no longer needed.
