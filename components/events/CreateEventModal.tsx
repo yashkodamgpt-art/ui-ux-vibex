@@ -1,54 +1,51 @@
 
 import React, { useState } from 'react';
-import type { Event, Topic } from '../../types';
+// FIX: Replaced obsolete 'Event' and 'Topic' types with 'Session'.
+import type { Session } from '../../types';
 
 interface CreateEventModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (eventData: Omit<Event, 'id' | 'creator' | 'creator_id' | 'lat' | 'lng' | 'participants'>) => void;
+    // FIX: The onSubmit prop now expects data conforming to the Session type.
+    onSubmit: (eventData: Omit<Session, 'id' | 'creator' | 'creator_id' | 'lat' | 'lng' | 'participants' | 'creator'>) => void;
 }
 
-const ALL_TOPICS: Topic[] = ['Food', 'Movies', 'Arts', 'Music', 'Sports', 'Tech', 'Social'];
+// FIX: ALL_TOPICS and Topic type are removed as they are obsolete.
 
 const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, onSubmit }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [selectedTopics, setSelectedTopics] = useState<Topic[]>([]);
-    const [isPublic, setIsPublic] = useState(true);
+    // FIX: Removed state for selectedTopics and isPublic.
     const [eventTimeOffset, setEventTimeOffset] = useState(5); // in minutes
     const [duration, setDuration] = useState(60); // in minutes
     const [error, setError] = useState('');
 
-    const handleTopicClick = (topic: Topic) => {
-        setSelectedTopics(prev => 
-            prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
-        );
-    };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        if (!title.trim() || selectedTopics.length === 0) {
-            setError('Please provide a title and select at least one topic.');
+        // FIX: Validation updated to only check for title.
+        if (!title.trim()) {
+            setError('Please provide a title.');
             return;
         }
 
         const eventTime = new Date(Date.now() + eventTimeOffset * 60 * 1000).toISOString();
 
+        // FIX: Submitting a Session object, not an Event. Added new required fields with defaults.
         onSubmit({
             title,
             description,
-            topics: selectedTopics,
-            is_public: isPublic,
             event_time: eventTime,
             duration,
             status: 'active',
+            sessionType: 'vibe',
+            emoji: '👋',
+            genderFilter: 'neutral',
+            flow: 'offering', // Required by type, default for vibe
         });
         // Reset form for next time
         setTitle('');
         setDescription('');
-        setSelectedTopics([]);
-        setIsPublic(true);
         setEventTimeOffset(5);
         setDuration(60);
     };
@@ -82,16 +79,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
                         <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500" rows={3} placeholder="Add a few details..."></textarea>
                     </div>
 
-                    <div>
-                        <span className="text-sm font-medium text-gray-700">Topics</span>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                            {ALL_TOPICS.map(topic => (
-                                <button type="button" key={topic} onClick={() => handleTopicClick(topic)} className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${selectedTopics.includes(topic) ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-                                    {topic}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    {/* FIX: Removed Topics section as it's no longer part of the data model. */}
                     
                     <div className="grid grid-cols-2 gap-x-4 gap-y-6">
                          <div>
@@ -116,13 +104,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
                          </div>
                     </div>
 
-
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">Visibility</span>
-                        <button type="button" onClick={() => setIsPublic(!isPublic)} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isPublic ? 'bg-purple-600' : 'bg-gray-300'}`}>
-                            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isPublic ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
-                    </div>
+                    {/* FIX: Removed Visibility (is_public) toggle as it's no longer part of the data model. */}
 
                     <div className="flex justify-end space-x-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Cancel</button>

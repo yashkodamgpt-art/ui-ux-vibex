@@ -1,13 +1,16 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import type { User, Event, VibeMessage } from '../../types';
+// FIX: Replaced obsolete 'Event' and 'VibeMessage' with 'Session' and 'SessionMessage'.
+import type { User, Session, SessionMessage } from '../../types';
 import { supabase } from '../../lib/supabaseClient';
 
 interface VibeChatPanelProps {
     isOpen: boolean;
     onClose: () => void;
-    vibe: Event;
-    messages: VibeMessage[];
+    // FIX: 'vibe' prop is now of type 'Session'.
+    vibe: Session;
+    // FIX: 'messages' prop is now an array of 'SessionMessage'.
+    messages: SessionMessage[];
     user: User;
     onSendMessage: (text: string) => void;
     onLeaveVibe: (eventId: number) => void;

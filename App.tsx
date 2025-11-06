@@ -54,6 +54,12 @@ const App: React.FC = () => {
           username: profile.username,
           bio: profile.bio,
           privacy: profile.privacy,
+          // FIX: Add missing properties to satisfy the Profile type, with fallbacks.
+          branch: profile.branch || '',
+          year: profile.year || new Date().getFullYear(),
+          expertise: profile.expertise || [],
+          interests: profile.interests || [],
+          cookieScore: profile.cookieScore || 0,
         }
       });
     } else {
@@ -83,6 +89,12 @@ const App: React.FC = () => {
               username: newProfile.username,
               bio: newProfile.bio,
               privacy: newProfile.privacy,
+              // FIX: Add missing properties to satisfy the Profile type, with fallbacks.
+              branch: newProfile.branch || '',
+              year: newProfile.year || new Date().getFullYear(),
+              expertise: newProfile.expertise || [],
+              interests: newProfile.interests || [],
+              cookieScore: newProfile.cookieScore || 0,
             }
           });
         }

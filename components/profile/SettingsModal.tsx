@@ -22,8 +22,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, user, on
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        // FIX: The 'Profile' type requires a username. Since it is not editable here, we pass the existing username.
-        onSave({ username: user.profile.username, bio, privacy });
+        // FIX: Spread the existing profile to ensure all fields are passed, then override the changed ones.
+        onSave({ ...user.profile, bio, privacy });
     };
 
     if (!isOpen) return null;
@@ -52,7 +52,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, user, on
                     <div>
                         <span className="text-sm font-medium text-gray-700">Profile Privacy</span>
                         <div className="mt-2 space-y-2">
-                           { (['public', 'community', 'private'] as const).map(p => (
+                           { (['public', 'friends', 'private'] as const).map(p => (
                              <label key={p} className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
                                 <input type="radio" name="privacy" value={p} checked={privacy === p} onChange={() => setPrivacy(p)} className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500" />
                                 <span className="ml-3 text-sm text-gray-800 capitalize">{p}</span>
@@ -61,7 +61,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, user, on
                         </div>
                          <p className="mt-2 text-xs text-gray-500">
                             {privacy === 'public' && 'Anyone can view your profile.'}
-                            {privacy === 'community' && 'Only other Vibex users can view your profile.'}
+                            {privacy === 'friends' && 'Only friends can view your profile.'}
                             {privacy === 'private' && 'Only you can see your profile.'}
                         </p>
                     </div>

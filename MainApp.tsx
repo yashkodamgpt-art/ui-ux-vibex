@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { User, Event, VibeMessage, Profile } from './types';
+// FIX: Replaced obsolete 'Event' and 'VibeMessage' types with the new 'Session' and 'SessionMessage' types.
+import type { User, Session, SessionMessage, Profile } from './types';
 import MapView, { type MapViewRef } from './components/map/MapView';
 import HistoryPanel from './components/history/HistoryPanel';
 import FloatingActionButton from './components/common/FloatingActionButton';
@@ -31,10 +32,13 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newEventCoords, setNewEventCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [activeVibe, setActiveVibe] = useState<Event | null>(null);
+  // FIX: State now holds an array of 'Session' objects.
+  const [events, setEvents] = useState<Session[]>([]);
+  // FIX: State for the active session is now of type 'Session'.
+  const [activeVibe, setActiveVibe] = useState<Session | null>(null);
   const [isChatVisible, setIsChatVisible] = useState(false);
-  const [chatMessages, setChatMessages] = useState<VibeMessage[]>([]);
+  // FIX: State for chat messages now holds 'SessionMessage' objects.
+  const [chatMessages, setChatMessages] = useState<SessionMessage[]>([]);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [viewedUser, setViewedUser] = useState<User | null>(null);
@@ -51,8 +55,9 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
     
     const fetchEvents = async () => {
         try {
+            // FIX: Fetching from 'sessions' table instead of 'events'.
             const { data, error: fetchError } = await supabase
-                .from('events')
+                .from('sessions')
                 .select('*, creator:profiles(username)')
                 .eq('status', 'active');
             
@@ -65,7 +70,8 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
                   setError("Failed to load events. Please refresh the page.");
                 }
             } else {
-                setEvents(data as Event[]);
+                // FIX: Data is cast to 'Session[]'.
+                setEvents(data as Session[]);
                 setError(null);
             }
         } catch (err) {
@@ -75,8 +81,9 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
     };
     fetchEvents();
 
-    const eventsSubscription = supabase.channel('public:events')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, payload => {
+    // FIX: Subscribing to changes on the 'sessions' table.
+    const eventsSubscription = supabase.channel('public:sessions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, payload => {
         console.log('Change received!', payload)
         fetchEvents();
       })
@@ -97,7 +104,8 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
                 const { data, error } = await supabase
                     .from('messages')
                     .select('*, sender:profiles(username)')
-                    .eq('event_id', activeVibe.id)
+                    // FIX: Filtering messages by 'session_id' instead of 'event_id'.
+                    .eq('session_id', activeVibe.id)
                     .order('created_at');
                     
                 if (error) {
@@ -107,7 +115,8 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
                       setTimeout(() => onLogout(), 2000);
                     }
                 } else {
-                    setChatMessages(data as any[] as VibeMessage[]);
+                    // FIX: Data is cast to 'SessionMessage[]'.
+                    setChatMessages(data as any[] as SessionMessage[]);
                 }
             } catch (err) {
                 console.error("Unexpected error fetching messages:", err);
@@ -115,12 +124,13 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
         };
         fetchMessages();
 
-        messagesSubscription = supabase.channel(`public:messages:event_id=eq.${activeVibe.id}`)
+        // FIX: Subscribing to message changes with a 'session_id' filter.
+        messagesSubscription = supabase.channel(`public:messages:session_id=eq.${activeVibe.id}`)
             .on('postgres_changes', { 
                 event: 'INSERT', 
                 schema: 'public', 
                 table: 'messages', 
-                filter: `event_id=eq.${activeVibe.id}` 
+                filter: `session_id=eq.${activeVibe.id}` 
             }, 
             async (payload) => {
                 try {
@@ -135,12 +145,12 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
                         setChatMessages(msgs => [...msgs, { 
                             ...payload.new, 
                             sender: { username: 'Unknown' } 
-                        } as VibeMessage]);
+                        } as SessionMessage]);
                     } else {
                         setChatMessages(msgs => [...msgs, { 
                             ...payload.new, 
                             sender: { username: profile.username } 
-                        } as VibeMessage]);
+                        } as SessionMessage]);
                     }
                 } catch (err) {
                     console.error('Error handling new message:', err);
@@ -165,12 +175,14 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
     setIsCreateModalOpen(true);
   };
 
-  const handleCreateEvent = async (eventData: Omit<Event, 'id' | 'creator' | 'creator_id' | 'lat' | 'lng' | 'participants'>) => {
+  // FIX: Type of 'eventData' is now based on 'Session'.
+  const handleCreateEvent = async (eventData: Omit<Session, 'id' | 'creator' | 'creator_id' | 'lat' | 'lng' | 'participants' | 'creator'>) => {
     if (!newEventCoords || !sessionValid) return;
 
     try {
+        // FIX: Inserting into 'sessions' table.
         const { data: newEvent, error } = await supabase
-            .from('events')
+            .from('sessions')
             .insert({
                 ...eventData,
                 status: 'active',
@@ -191,7 +203,8 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
               setError("Failed to create event. Please try again.");
             }
         } else if (newEvent) {
-            setActiveVibe(newEvent as Event);
+            // FIX: New event is cast to 'Session'.
+            setActiveVibe(newEvent as Session);
             setIsCreateModalOpen(false);
             setNewEventCoords(null);
             setIsCreateMode(false);
@@ -211,8 +224,9 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
     if (!sessionValid) return;
     
     try {
+        // FIX: Updating the 'sessions' table.
         const { error } = await supabase
-            .from('events')
+            .from('sessions')
             .update({ status: 'closed' })
             .eq('id', eventId);
             
@@ -240,8 +254,9 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
       if (!event) return;
       
       try {
+          // FIX: Updating the 'sessions' table.
           const { error } = await supabase
-              .from('events')
+              .from('sessions')
               .update({ duration: event.duration + 15 })
               .eq('id', eventId);
               
@@ -269,8 +284,9 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
 
     try {
         const newParticipants = [...event.participants, user.id];
+        // FIX: Updating the 'sessions' table.
         const { data, error } = await supabase
-            .from('events')
+            .from('sessions')
             .update({ participants: newParticipants })
             .eq('id', eventId)
             .select('*, creator:profiles(username)')
@@ -283,7 +299,8 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
               setTimeout(() => onLogout(), 2000);
             }
         } else {
-            setActiveVibe(data as Event);
+            // FIX: Result is cast to 'Session'.
+            setActiveVibe(data as Session);
         }
     } catch (err) {
         console.error("Unexpected error joining vibe:", err);
@@ -298,8 +315,9 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
 
       try {
           const newParticipants = event.participants.filter(p => p !== user.id);
+          // FIX: Updating the 'sessions' table.
           const { error } = await supabase
-              .from('events')
+              .from('sessions')
               .update({ participants: newParticipants })
               .eq('id', eventId);
               
@@ -327,7 +345,8 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
               .insert({
                   text,
                   sender_id: user.id,
-                  event_id: activeVibe.id,
+                  // FIX: Using 'session_id' instead of 'event_id'.
+                  session_id: activeVibe.id,
               });
               
           if (error) {
@@ -367,6 +386,12 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
                     username: profile.username,
                     bio: profile.bio,
                     privacy: profile.privacy,
+                    // FIX: Added missing properties to satisfy the Profile type definition.
+                    branch: profile.branch,
+                    year: profile.year,
+                    expertise: profile.expertise,
+                    interests: profile.interests,
+                    cookieScore: profile.cookieScore
                   }
               };
               setViewedUser(userToView);

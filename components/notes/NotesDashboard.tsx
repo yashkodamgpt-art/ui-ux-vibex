@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import type { User, Note } from '../../types';
+// FIX: The 'Note' type has been removed. This component is repurposed to show past Sessions.
+import type { User, Session } from '../../types';
 import NoteCard from './NoteCard';
-import AddNoteForm from './AddNoteForm';
+// import AddNoteForm from './AddNoteForm'; // FIX: AddNoteForm is obsolete as sessions are created from the map.
 import { supabase } from '../../lib/supabaseClient';
 
 interface NotesDashboardProps {
@@ -10,21 +11,26 @@ interface NotesDashboardProps {
 }
 
 const NotesDashboard: React.FC<NotesDashboardProps> = ({ user }) => {
-  const [notes, setNotes] = useState<Note[]>([]);
+  // FIX: State now holds Sessions, not Notes.
+  const [notes, setNotes] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // FIX: Functionality changed to fetch past sessions (status: 'closed')
   const fetchNotes = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('notes')
+      .from('sessions') // FIX: Table changed from 'notes' to 'sessions'.
       .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      .eq('status', 'closed') // FIX: Fetching closed sessions for history.
+      // FIX: Fetch sessions where the user is either the creator or a participant.
+      .or(`creator_id.eq.${user.id},participants.cs.{${user.id}}`) 
+      .order('event_time', { ascending: false }); // FIX: Order by event_time.
 
     if (error) {
       console.error("Error fetching notes:", error);
     } else {
-      setNotes(data as Note[]);
+      // FIX: Data is cast to Session[].
+      setNotes(data as Session[]);
     }
     setLoading(false);
   }, [user.id]);
@@ -33,39 +39,27 @@ const NotesDashboard: React.FC<NotesDashboardProps> = ({ user }) => {
     fetchNotes();
   }, [fetchNotes]);
 
-  const handleAddNote = async (content: string) => {
-    const { data, error } = await supabase
-      .from('notes')
-      .insert({ content, user_id: user.id })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error adding note:", error);
-    } else if (data) {
-      setNotes(prevNotes => [data as Note, ...prevNotes]);
-    }
-  };
+  // FIX: handleAddNote and AddNoteForm are removed as they are part of the old 'notes' feature.
 
   return (
     <div className="space-y-8">
-      <AddNoteForm onAddNote={handleAddNote} />
+      {/* <AddNoteForm onAddNote={handleAddNote} /> */}
       
       <div className="mt-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Vibes History</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Past Sessions</h2>
         {loading ? (
-            <div className="text-center py-16"><p>Loading your vibes...</p></div>
+            <div className="text-center py-16"><p>Loading your history...</p></div>
         ) : notes.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {notes.map((note) => (
-              // FIX: The 'note' object is passed directly. The property 'createdAt' does not exist on the Note type.
+              // FIX: The 'note' object is now a Session, passed to the repurposed NoteCard.
               <NoteCard key={note.id} note={note} />
             ))}
           </div>
         ) : (
           <div className="text-center py-16 bg-white rounded-xl shadow-md">
             <h3 className="text-xl font-semibold text-gray-700">No vibes yet!</h3>
-            <p className="text-gray-500 mt-2">Use the form above to add your first note.</p>
+            <p className="text-gray-500 mt-2">Join or create a session to see your history here.</p>
           </div>
         )}
       </div>

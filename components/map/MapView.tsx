@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import type { Event, User } from '../../types';
+// FIX: The 'Event' type has been replaced with the new 'Session' type.
+import type { Session, User } from '../../types';
 
 declare const L: any;
 
@@ -14,9 +15,11 @@ interface MapViewProps {
   userLocation: [number, number] | null;
   onSetUserLocation: (coords: [number, number]) => void;
   onMapClick: (coords: { lat: number, lng: number }) => void;
-  events: Event[];
+  // FIX: The 'events' prop now expects an array of 'Session' objects.
+  events: Session[];
   user: User;
-  activeVibe: Event | null;
+  // FIX: The 'activeVibe' prop is now of type 'Session'.
+  activeVibe: Session | null;
   onCloseEvent: (eventId: number) => void;
   onExtendEvent: (eventId: number) => void;
   onJoinVibe: (eventId: number) => void;
@@ -192,13 +195,15 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
     });
 
     activeEvents.forEach(event => {
-      if (!event.is_public && event.creator_id !== user.id) return;
+      // FIX: Removed check for 'is_public' as it's not part of the Session type.
+      // if (!event.is_public && event.creator_id !== user.id) return;
 
       const participantCount = event.participants?.length || 1;
       const markerSize = Math.min(24 + (participantCount - 1) * 4, 48);
 
       const eventIcon = L.divIcon({
         className: 'event-marker',
+        html: `<div style="font-size: ${markerSize * 0.7}px; text-align: center; line-height: ${markerSize}px;">${event.emoji}</div>`,
         iconSize: [markerSize, markerSize],
       });
       
@@ -210,7 +215,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         <h3 class="font-bold text-lg text-purple-800">${event.title}</h3>
         ${event.description ? `<p class="text-gray-700 my-1">${event.description}</p>` : ''}
         <div class="flex flex-wrap gap-1 my-2">
-          ${event.topics.map(topic => `<span class="bg-purple-200 text-purple-800 text-xs font-semibold px-2 py-0.5 rounded-full">${topic}</span>`).join('')}
+          ${/* FIX: Removed 'topics' as it's not part of the Session type. */''}
         </div>
         <p class="text-xs text-gray-500">Ends at: ${new Date(new Date(event.event_time).getTime() + event.duration * 60 * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
         <p class="text-xs text-gray-500 font-medium">👥 ${participantCount} ${participantCount > 1 ? 'Vibing' : 'Vibing'}</p>
