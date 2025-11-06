@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { User, Session, SessionMessage, Profile, SessionType } from './types';
 import MapView, { type MapViewRef } from './components/map/MapView';
@@ -11,15 +10,15 @@ import ProfileModal from './components/profile/ProfileModal';
 import { supabase } from './lib/supabaseClient';
 import BottomNavBar, { type AppTab } from './components/layout/BottomNavBar';
 import PageHeader from './components/layout/PageHeader';
-import HomeHeader from './components/layout/HomeHeader';
+import HomeHeader from './components/layout/HomeHeader'; // We keep this for the profile button
 import ProfileQuickView from './components/layout/ProfileQuickView';
 import SocialPage from './components/social/SocialPage';
 import AlertsPage from './components/alerts/AlertsPage';
 import ProfilePage from './components/profile/ProfilePage';
-import CreateSessionMenu from './components/sessions/CreateSessionMenu';
-
-// --- NEW MOCK DATA IMPORT ---
 import { MOCK_SESSIONS } from './lib/mockData';
+
+// --- NEW IMPORTS ---
+import CreateSessionMenu from './components/sessions/CreateSessionMenu';
 
 interface MainAppProps {
   user: User;
@@ -33,13 +32,14 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   const [sessions, setSessions] = useState<Session[]>(MOCK_SESSIONS);
   const [activeVibe, setActiveVibe] = useState<Session | null>(null);
   
-  // Create Flow State
+  // --- NEW CREATE FLOW STATE ---
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const [isPlacementMode, setIsPlacementMode] = useState(false);
   const [selectedSessionType, setSelectedSessionType] = useState<SessionType | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newEventCoords, setNewEventCoords] = useState<{ lat: number; lng: number } | null>(null);
 
+  // Old states
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [chatMessages, setChatMessages] = useState<SessionMessage[]>([]);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -54,8 +54,11 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
     console.log('🎯 MainApp mounted for user:', user.profile.username);
   }, [user]);
 
-  // --- ALL SUPABASE LOGIC IS NOW COMMENTED OUT ---
+  // --- MOCK DATA LOGIC (Supabase calls are commented out) ---
 
+  // --- NEW HANDLERS FOR CREATE FLOW ---
+
+  // Helper function to reset the entire creation flow
   const handleCancelCreate = useCallback(() => {
     setIsCreateMenuOpen(false);
     setIsPlacementMode(false);
@@ -64,20 +67,23 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
     setNewEventCoords(null);
   }, []);
 
+  // Step 1: User clicks the purple '+' button
   const handleCreateButtonClick = () => {
     if (isCreateMenuOpen || isPlacementMode) {
-        handleCancelCreate();
+        handleCancelCreate(); // If it's already open, cancel
     } else {
-        setIsCreateMenuOpen(true);
+        setIsCreateMenuOpen(true); // Open the menu
     }
   };
   
+  // Step 2: User selects a session type from the menu
   const handleSelectSessionType = (type: SessionType) => {
     setSelectedSessionType(type);
-    setIsPlacementMode(true);
+    setIsPlacementMode(true); // Turn on "click map" mode
     setIsCreateMenuOpen(false);
   };
 
+  // Step 3: User clicks on the map to place the session
   const handleMapPlacement = (coords: { lat: number; lng: number }) => {
     if (activeVibe) {
         alert("You are already in a Vibe. Leave or close your current Vibe to create a new one.");
@@ -85,28 +91,34 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
         return;
     }
     setNewEventCoords(coords);
-    setIsCreateModalOpen(true);
-    setIsPlacementMode(false);
+    setIsCreateModalOpen(true); // Open the *details* modal
+    setIsPlacementMode(false); // Turn off "click map" mode
   };
 
+  // Step 4: User submits the details modal
   const handleCreateEvent = async (eventData: Omit<Session, 'id' | 'creator' | 'creator_id' | 'lat' | 'lng' | 'participants' | 'creator'>) => {
     if (!newEventCoords || !sessionValid) return;
     console.log('--- MOCK: Creating Event ---', eventData);
-    // In mock mode, we just add it to our local state.
+    
     const newSession: Session = {
       ...eventData,
-      id: Math.floor(Math.random() * 10000), // Random ID
+      id: Math.floor(Math.random() * 10000),
       lat: newEventCoords.lat,
       lng: newEventCoords.lng,
       creator_id: user.id,
       participants: [user.id],
       creator: { username: user.profile.username },
+      // This is now passed from the modal, but we keep the fallback
+      sessionType: selectedSessionType || 'vibe', 
     };
+    
     setSessions(prevSessions => [...prevSessions, newSession]);
     setActiveVibe(newSession);
-    handleCancelCreate();
+    handleCancelCreate(); // Reset everything
   };
   
+  // --- Other Mock Handlers ---
+
   const handleRecenterMap = () => {
     mapViewRef.current?.recenter();
   };
@@ -176,8 +188,6 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
 
   const handleOpenProfile = async (username: string) => {
       console.log('--- MOCK: Opening Profile ---', username);
-      // In a real app, we'd fetch this. In mock, we can't.
-      // We'll just show an alert.
       alert(`Mock Mode: Cannot open profile for ${username}. This feature will be built later.`);
   };
 
@@ -186,7 +196,6 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   };
 
   if (!sessionValid) {
-    // This should not be reachable in mock mode
     return null;
   }
 
@@ -211,11 +220,11 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
             <MapView 
               ref={mapViewRef}
               isVisible={activeTab === 'Home'}
-              isCreateMode={isPlacementMode}
+              isCreateMode={isPlacementMode} // <-- Use isPlacementMode
               userLocation={userLocation}
               onSetUserLocation={setUserLocation}
-              onMapClick={handleMapPlacement}
-              events={sessions} // Pass 'sessions' state
+              onMapClick={handleMapPlacement} // <-- Use new handler
+              events={sessions} 
               user={user}
               activeVibe={activeVibe}
               onCloseEvent={handleCloseEvent}
@@ -228,10 +237,12 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
                 onClick={handleRecenterMap} 
                 disabled={!userLocation} 
               />
+              {/* Render the new expanding menu */}
               <CreateSessionMenu 
                 isOpen={isCreateMenuOpen}
                 onSelectType={handleSelectSessionType}
               />
+              {/* This button now controls the menu */}
               <CreateEventButton 
                 onClick={handleCreateButtonClick} 
                 isActive={isCreateMenuOpen || isPlacementMode} 
@@ -254,6 +265,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
             <ProfilePage />
           </div>
         
+        {/* Pass the selected session type to the modal */}
         <CreateEventModal 
           isOpen={isCreateModalOpen}
           onClose={handleCancelCreate}
