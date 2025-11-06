@@ -30,16 +30,17 @@ const VouchModal: React.FC<VouchModalProps> = ({ isOpen, onClose, session, onVou
   return (
     <>
       <div 
+        onClick={onClose}
         className="fixed inset-0 bg-black/50 z-[3000] transition-opacity duration-300 opacity-100" 
         aria-hidden="true"
       />
       <div 
-        className="fixed inset-0 z-[3010] flex items-center justify-center p-4"
+        className={`fixed inset-0 z-[3010] flex items-end sm:items-center justify-center p-0 sm:p-4 ${isOpen ? '' : 'pointer-events-none'}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="vouch-title"
       >
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 space-y-4 transform transition-all duration-300 scale-100 text-center">
+        <div className={`w-full max-w-sm bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 space-y-4 text-center modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
           <h2 id="vouch-title" className="text-xl font-bold text-gray-800">Rate Your Experience</h2>
           <p className="text-gray-600">
             Did <span className="font-semibold text-orange-600">{session.creator.username}</span> help you with <span className="font-semibold text-orange-600">{session.skillTag}</span>?

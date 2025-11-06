@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Tag } from '../../types';
 import { containsOffensiveContent } from '../../lib/contentFilter'; // NEW
 
@@ -11,6 +11,7 @@ interface CreateTagModalProps {
 
 const colors = ['green', 'blue', 'purple', 'orange', 'red', 'pink', 'yellow', 'gray'];
 const emojis = ['🎉', '🎮', '🏀', '📚', '☕', '🍕', '🙋', '💡', '🍪', '🤝', '🏸', '♟️', '🎬'];
+const MAX_CHARS = 20;
 
 const colorClasses: { [key: string]: string } = {
   green: 'bg-green-500',
@@ -23,11 +24,18 @@ const colorClasses: { [key: string]: string } = {
   gray: 'bg-gray-500',
 };
 
+const getCharLimitColors = (length: number, limit: number) => {
+    if (length >= limit) return { text: 'text-red-600', border: 'border-red-500 ring-red-500' };
+    if (length >= limit - 5) return { text: 'text-orange-500', border: 'border-orange-400 ring-orange-400' };
+    return { text: 'text-gray-500', border: 'border-gray-300' };
+};
+
 const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave, existingTag }) => {
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState('green');
   const [selectedEmoji, setSelectedEmoji] = useState('🎉');
   const [error, setError] = useState('');
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -41,6 +49,7 @@ const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave
         setSelectedEmoji('🎉');
       }
       setError('');
+      setTimeout(() => nameInputRef.current?.focus(), 150);
     }
   }, [isOpen, existingTag]);
 
@@ -53,7 +62,6 @@ const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave
       return;
     }
     
-    // NEW: Content Filtering
     if (containsOffensiveContent(name)) {
         setError('Please use appropriate language for the tag name.');
         return;
@@ -63,6 +71,8 @@ const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave
   };
 
   if (!isOpen) return null;
+  
+  const nameColors = getCharLimitColors(name.length, MAX_CHARS);
 
   return (
     <>
@@ -72,12 +82,12 @@ const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave
         aria-hidden="true"
       />
       <div 
-        className="fixed inset-0 z-[2010] flex items-center justify-center p-4"
+        className={`fixed inset-0 z-[2010] flex items-end sm:items-center justify-center p-0 sm:p-4 ${isOpen ? '' : 'pointer-events-none'}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-tag-title"
       >
-        <form onSubmit={handleSubmit} className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 transform transition-all duration-300 scale-100">
+        <form onSubmit={handleSubmit} className={`w-full max-w-md bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 sm:p-8 space-y-6 modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
           <h2 id="create-tag-title" className="text-2xl font-bold text-gray-800">
             {existingTag ? 'Edit Tag' : 'Create New Tag'}
           </h2>
@@ -86,15 +96,18 @@ const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave
           <div>
               <label htmlFor="tag-name" className="text-sm font-medium text-gray-700">Tag Name</label>
               <input 
+                ref={nameInputRef}
                 id="tag-name" 
                 type="text" 
                 value={name} 
                 onChange={e => setName(e.target.value)} 
-                maxLength={20}
+                maxLength={MAX_CHARS}
                 required 
-                className={`mt-1 block w-full px-4 py-2 bg-gray-50 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 ${error ? 'border-red-500' : 'border-gray-300'}`} 
+                className={`mt-1 block w-full px-4 py-2 bg-gray-50 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 ${error ? 'border-red-500' : nameColors.border}`} 
                 placeholder="e.g., Study Buddies"
+                style={{fontSize: '16px'}}
               />
+              <p className={`text-right text-xs mt-1 ${nameColors.text}`}>{name.length}/{MAX_CHARS}</p>
           </div>
 
           <div>

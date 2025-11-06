@@ -29,6 +29,7 @@ interface MapViewProps {
 
 export interface MapViewRef {
   recenter: () => void;
+  flyToSession: (session: Session) => void; // NEW
 }
 
 // --- HELPER FUNCTIONS ---
@@ -80,7 +81,10 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
   const [error, setError] = useState<string | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(true);
 
-  useImperativeHandle(ref, () => ({ recenter: () => { if (mapInstanceRef.current && userLocation) { mapInstanceRef.current.flyTo(userLocation, LOCATION_FOUND_ZOOM); } } }));
+  useImperativeHandle(ref, () => ({
+    recenter: () => { if (mapInstanceRef.current && userLocation) { mapInstanceRef.current.flyTo(userLocation, LOCATION_FOUND_ZOOM); } },
+    flyToSession: (session: Session) => { if (mapInstanceRef.current) { mapInstanceRef.current.flyTo([session.lat, session.lng], 18); } }
+  }));
 
   useEffect(() => { const timerId = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(timerId); }, []);
   useEffect(() => { if (!mapRef.current || typeof L === 'undefined') { console.error("MapView: Leaflet library (L) is not defined or map container is not available."); setError("Map could not be loaded."); return; } const map = L.map(mapRef.current, { center: IITGN_COORDS, zoom: INITIAL_ZOOM, zoomControl: false, preferCanvas: true }); mapInstanceRef.current = map; L.control.zoom({ position: 'topright' }).addTo(map); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19, keepBuffer: 2, }).addTo(map); L.control.scale({ position: 'bottomright' }).addTo(map); userMarkerRef.current = L.marker(IITGN_COORDS).addTo(map); eventsLayerRef.current = L.layerGroup().addTo(map); setTimeout(() => map.invalidateSize(), 100); return () => { map.remove(); }; }, []);
@@ -88,7 +92,38 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
   useEffect(() => { if (isVisible && mapInstanceRef.current) { setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); } }, [isVisible]);
   useEffect(() => { if (mapInstanceRef.current && activeFilter && campusZones[activeFilter]) { const zone = campusZones[activeFilter]; mapInstanceRef.current.flyTo(zone.coords, zone.zoom); } }, [activeFilter, campusZones]);
   useEffect(() => { const map = mapInstanceRef.current; if (!map) return; const handleClick = (e: any) => { if (!isCreateMode || !userLocation) return; const clickLatLng = e.latlng; const userLatLng = L.latLng(userLocation[0], userLocation[1]); if (userLatLng.distanceTo(clickLatLng) <= CREATE_RADIUS_METERS) { onMapClick({ lat: clickLatLng.lat, lng: clickLatLng.lng }); } else { alert("Please select a location within the 5km radius."); } }; map.on('click', handleClick); return () => { map.off('click', handleClick); }; }, [isCreateMode, onMapClick, userLocation]);
-  useEffect(() => { const map = mapInstanceRef.current; if (!map || !mapRef.current) return; if (isCreateMode && userLocation) { if (!radiusCircleRef.current) { radiusCircleRef.current = L.circle(userLocation, { radius: CREATE_RADIUS_METERS, color: '#a855f7', fillColor: '#c084fc', fillOpacity: 0.1, weight: 2, }).addTo(map); } mapRef.current.style.cursor = 'crosshair'; } else { if (radiusCircleRef.current) { radiusCircleRef.current.remove(); radiusCircleRef.current = null; } mapRef.current.style.cursor = ''; } }, [isCreateMode, userLocation]);
+  
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapRef.current) return;
+
+    if (isCreateMode && userLocation) {
+        if (!radiusCircleRef.current) {
+            radiusCircleRef.current = L.circle(userLocation, {
+                radius: CREATE_RADIUS_METERS,
+                color: '#a855f7',
+                fillColor: '#c084fc',
+                fillOpacity: 0.1,
+                weight: 2,
+            }).addTo(map);
+        }
+        mapRef.current.style.cursor = 'crosshair';
+        map.dragging.disable();
+        map.touchZoom.disable();
+        map.doubleClickZoom.disable();
+        map.scrollWheelZoom.disable();
+    } else {
+        if (radiusCircleRef.current) {
+            radiusCircleRef.current.remove();
+            radiusCircleRef.current = null;
+        }
+        mapRef.current.style.cursor = '';
+        map.dragging.enable();
+        map.touchZoom.enable();
+        map.doubleClickZoom.enable();
+        map.scrollWheelZoom.enable();
+    }
+  }, [isCreateMode, userLocation]);
 
   useEffect(() => {
     const layer = eventsLayerRef.current;
@@ -105,7 +140,8 @@ const MapView = forwardRef<MapViewRef, MapViewProps>(({ isCreateMode, userLocati
         const isScheduled = startTime > nowTime; const isActive = !isScheduled; const minutesToStart = (startTime - nowTime) / 60000;
         if (isScheduled && minutesToStart <= 5) return;
 
-        const participantCount = event.participants?.length || 1; const markerSize = Math.min(32 + (participantCount - 1) * 4, 56);
+        const participantCount = event.participants?.length || 1;
+        const markerSize = Math.min(40 + (participantCount - 1) * 4, 60);
         let markerHtml = `<div class="emoji-container" style="font-size: ${markerSize * 0.7}px; text-align: center; line-height: ${markerSize}px;">${event.emoji}</div>`;
         if (isActive) { markerHtml += '<div class="active-indicator"></div>'; } else { markerHtml += `<div class="countdown-timer">Starts in ${Math.round(minutesToStart)}m</div>`; }
         if (event.privacy === 'private') { markerHtml += '<div class="private-indicator">🔒</div>'; }

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { User } from '../../types';
 
@@ -22,12 +21,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, userToView
                 aria-hidden="true"
             />
             <div 
-                className="fixed inset-0 z-[2010] flex items-center justify-center p-4"
+                className={`fixed inset-0 z-[2010] flex items-end sm:items-center justify-center p-0 sm:p-4 ${isOpen ? '' : 'pointer-events-none'}`}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="profile-title"
             >
-                <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-8 space-y-4 transform transition-all duration-300 scale-100 text-center">
+                <div className={`w-full max-w-md bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 sm:p-8 space-y-4 text-center modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
                     <div className="flex justify-center">
                          <div className="h-20 w-20 bg-green-200 rounded-full flex items-center justify-center">
                              <span className="text-3xl font-bold text-green-700">{userToView.profile.username.charAt(0).toUpperCase()}</span>

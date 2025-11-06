@@ -155,6 +155,62 @@
     .shake-error {
       animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
     }
+    
+    /* NEW: Styles for Active Session Indicator */
+    @keyframes subtle-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.2); }
+      70% { box-shadow: 0 0 0 8px rgba(0, 0, 0, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+    }
+    .active-session-indicator {
+      animation: subtle-pulse 2s infinite;
+    }
+
+    /* --- UX Polish Styles (Phase 7.1) --- */
+    @keyframes slide-up {
+      from { transform: translateY(100vh); }
+      to { transform: translateY(0); }
+    }
+    .modal-slide-up-panel {
+      animation: slide-up 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+    .modal-content-container {
+      transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    @media (min-width: 640px) { /* On larger screens, revert to a fade-in scale-up */
+      @keyframes fade-scale-in {
+        from { transform: scale(0.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      .modal-content-container {
+        animation: fade-scale-in 0.2s ease-out forwards;
+      }
+    }
+
+    /* Horizontal scroll snapping for emoji pickers */
+    .horizontal-snap {
+      display: flex;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; /* Firefox */
+      scroll-snap-type: x mandatory;
+    }
+    .horizontal-snap::-webkit-scrollbar {
+      display: none; /* Safari and Chrome */
+    }
+    .horizontal-snap > * {
+      scroll-snap-align: start;
+    }
+
+    /* Bottom Nav Bar Tap Animation */
+    .nav-item-tap {
+      transition: transform 0.1s ease-in-out;
+    }
+    .nav-item-tap:active {
+      transform: scale(1.1);
+    }
   </style>
   <script type="importmap">
 {

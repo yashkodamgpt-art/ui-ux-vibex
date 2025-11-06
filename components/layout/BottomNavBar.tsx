@@ -49,7 +49,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabClick }) =>
           <button
             key={item.id}
             onClick={() => onTabClick(item.id as AppTab)}
-            className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${color} hover:text-green-500`}
+            className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 nav-item-tap ${color} hover:text-green-500`}
             aria-label={item.id}
           >
             <item.icon className="h-6 w-6" />

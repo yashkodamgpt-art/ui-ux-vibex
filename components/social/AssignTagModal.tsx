@@ -49,12 +49,12 @@ const AssignTagModal: React.FC<AssignTagModalProps> = ({ isOpen, onClose, friend
         aria-hidden="true"
       />
       <div 
-        className="fixed inset-0 z-[2010] flex items-center justify-center p-4"
+        className={`fixed inset-0 z-[2010] flex items-end sm:items-center justify-center p-0 sm:p-4 ${isOpen ? '' : 'pointer-events-none'}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="assign-tag-title"
       >
-        <form onSubmit={handleSubmit} className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 transform transition-all duration-300 scale-100">
+        <form onSubmit={handleSubmit} className={`w-full max-w-md bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 sm:p-8 space-y-6 modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
           <h2 id="assign-tag-title" className="text-2xl font-bold text-gray-800">
             Add <span className="text-green-600">{friend.username}</span> to Tags
           </h2>

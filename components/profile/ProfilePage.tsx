@@ -6,6 +6,7 @@ import SessionHistory from './SessionHistory';
 // Data for selectors
 const branches = ['Computer Science', 'Electrical Eng.', 'Mechanical Eng.', 'Chemical Eng.', 'Civil Eng.', 'Materials Sci.', 'Physics', 'Mathematics', 'Chemistry'];
 const years = [2028, 2027, 2026, 2025, 2024, 2023, 2022];
+const BIO_MAX_CHARS = 200;
 
 const expertiseData = {
   "Programming": ["Python", "Java", "C++", "JavaScript", "React", "Node.js"],
@@ -25,6 +26,12 @@ interface ProfilePageProps {
   onProfileUpdate: (profile: Profile) => void;
   sessions: Session[];
 }
+
+const getCharLimitColors = (length: number, limit: number) => {
+    if (length >= limit) return { text: 'text-red-600', border: 'border-red-500 focus:ring-red-500' };
+    if (length >= limit - 20) return { text: 'text-orange-500', border: 'border-orange-400 focus:ring-orange-400' };
+    return { text: 'text-gray-500', border: 'border-gray-300 focus:ring-green-500' };
+};
 
 // Reusable Accordion Component
 const AccordionSection: React.FC<{title: string; sectionId: string; openSection: string | null; setOpenSection: (id: string | null) => void; children: React.ReactNode;}> = ({ title, sectionId, openSection, setOpenSection, children }) => {
@@ -117,6 +124,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, sessio
   };
   
   const initial = user.profile.username.charAt(0).toUpperCase();
+  const bioColors = getCharLimitColors(profileData.bio.length, BIO_MAX_CHARS);
 
   return (
     <div className="pb-24"> {/* Padding bottom for fixed save button */}
@@ -161,8 +169,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, sessio
                 {/* Bio */}
                 <div>
                     <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                    <textarea id="bio" name="bio" value={profileData.bio} onChange={handleChange} maxLength={200} rows={4} className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Tell us a little about yourself..."></textarea>
-                    <p className="text-right text-xs text-gray-500 mt-1">{profileData.bio.length}/200</p>
+                    <textarea id="bio" name="bio" value={profileData.bio} onChange={handleChange} maxLength={BIO_MAX_CHARS} rows={4} className={`w-full px-3 py-2 bg-gray-50 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${bioColors.border}`} placeholder="Tell us a little about yourself..."></textarea>
+                    <p className={`text-right text-xs mt-1 ${bioColors.text}`}>{profileData.bio.length}/{BIO_MAX_CHARS}</p>
                 </div>
 
                 {/* Privacy */}

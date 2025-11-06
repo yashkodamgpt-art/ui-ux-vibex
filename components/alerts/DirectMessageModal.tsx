@@ -11,12 +11,18 @@ interface DirectMessageModalProps {
   onSendMessage: (text: string) => void;
 }
 
-const QUICK_REPLIES = ["Yes", "No", "On my way", "Busy", "Later"];
-const MAX_CHARS = 100;
+const QUICK_REPLIES = ["Yes", "No", "Maybe", "Busy now", "Talk later"];
+const MAX_CHARS = 60;
+
+const getCharLimitColors = (length: number, limit: number) => {
+    if (length >= limit) return { text: 'text-red-600', border: 'border-red-500 ring-red-500' };
+    if (length >= limit - 10) return { text: 'text-orange-500', border: 'border-orange-400 ring-orange-400' };
+    return { text: 'text-gray-500', border: 'border-transparent' };
+};
 
 const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose, conversation, currentUser, friend, onSendMessage }) => {
   const [messageText, setMessageText] = useState('');
-  const [inputError, setInputError] = useState(false); // NEW
+  const [inputError, setInputError] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -32,7 +38,6 @@ const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (messageText.trim()) {
-      // NEW: Content Filtering
       if (containsOffensiveContent(messageText)) {
           setInputError(true);
           setTimeout(() => setInputError(false), 500);
@@ -44,6 +49,8 @@ const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose
   };
 
   if (!isOpen) return null;
+
+  const charColors = getCharLimitColors(messageText.length, MAX_CHARS);
 
   return (
     <div 
@@ -68,7 +75,7 @@ const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose
         {conversation.messages.map(msg => (
           <div key={msg.id} className={`flex items-end gap-2 ${msg.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${msg.senderId === currentUser.id ? 'bg-green-600 text-white rounded-br-lg' : 'bg-white text-gray-800 rounded-bl-lg shadow-sm'}`}>
-              <p className="text-md">{msg.text}</p>
+              <p className="text-md break-words">{msg.text}</p>
               <p className="text-xs opacity-70 text-right mt-1">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
             </div>
           </div>
@@ -93,13 +100,11 @@ const DirectMessageModal: React.FC<DirectMessageModalProps> = ({ isOpen, onClose
                   onChange={e => setMessageText(e.target.value)}
                   maxLength={MAX_CHARS}
                   placeholder="Type a message..."
-                  className={`w-full px-4 py-3 bg-gray-100 border border-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 ${inputError ? 'shake-error border-red-500' : ''}`}
+                  className={`w-full px-4 py-3 bg-gray-100 border rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 ${inputError ? 'shake-error border-red-500' : charColors.border}`}
               />
-              {messageText.length > 50 && (
-                <span className="absolute right-4 bottom-3 text-xs text-gray-500">
-                    {messageText.length}/{MAX_CHARS}
-                </span>
-              )}
+              <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold ${charColors.text}`}>
+                  {messageText.length}/{MAX_CHARS}
+              </span>
             </div>
             <button type="submit" className="p-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors disabled:bg-gray-400" disabled={!messageText.trim()}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">

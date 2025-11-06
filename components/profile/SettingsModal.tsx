@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { User } from '../../types';
 
 interface SettingsModalProps {
@@ -12,11 +11,13 @@ interface SettingsModalProps {
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, user, onSave }) => {
     const [bio, setBio] = useState('');
     const [privacy, setPrivacy] = useState<User['profile']['privacy']>('public');
+    const bioInputRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
-        if (user) {
+        if (user && isOpen) {
             setBio(user.profile.bio);
             setPrivacy(user.profile.privacy);
+            setTimeout(() => bioInputRef.current?.focus(), 150);
         }
     }, [user, isOpen]);
 
@@ -36,17 +37,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, user, on
                 aria-hidden="true"
             />
             <div 
-                className="fixed inset-0 z-[2010] flex items-center justify-center p-4"
+                className={`fixed inset-0 z-[2010] flex items-end sm:items-center justify-center p-0 sm:p-4 ${isOpen ? '' : 'pointer-events-none'}`}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="settings-title"
             >
-                <form onSubmit={handleSave} className="w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 transform transition-all duration-300 scale-100">
+                <form onSubmit={handleSave} className={`w-full max-w-lg bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 sm:p-8 space-y-6 modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
                     <h2 id="settings-title" className="text-2xl font-bold text-gray-800">Profile & Settings</h2>
                     
                     <div>
                         <label htmlFor="bio" className="text-sm font-medium text-gray-700">Your Bio</label>
-                        <textarea id="bio" value={bio} onChange={e => setBio(e.target.value)} className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500" rows={3} placeholder="Tell others a little about yourself..."></textarea>
+                        <textarea ref={bioInputRef} id="bio" value={bio} onChange={e => setBio(e.target.value)} className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500" rows={3} placeholder="Tell others a little about yourself..." style={{fontSize: '16px'}}></textarea>
                     </div>
 
                     <div>

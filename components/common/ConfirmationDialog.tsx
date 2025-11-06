@@ -20,12 +20,12 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ isOpen, title, 
         aria-hidden="true"
       />
       <div 
-        className="fixed inset-0 z-[3010] flex items-center justify-center p-4"
+        className={`fixed inset-0 z-[3010] flex items-end sm:items-center justify-center p-0 sm:p-4 ${isOpen ? '' : 'pointer-events-none'}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirmation-title"
       >
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 space-y-4 transform transition-all duration-300 scale-100">
+        <div className={`w-full max-w-sm bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 space-y-4 modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
           <h2 id="confirmation-title" className="text-xl font-bold text-gray-800">{title}</h2>
           <p className="text-gray-600">{message}</p>
           <div className="flex justify-end space-x-3 pt-2">

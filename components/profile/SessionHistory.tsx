@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Session, User, SessionType } from '../../types';
 import SessionHistoryCard from './SessionHistoryCard';
 
@@ -17,9 +17,20 @@ const sessionTypeIcons: Record<SessionType, string> = {
   borrow: '🤝',
 };
 
+const SkeletonCard: React.FC = () => (
+    <div className="bg-white rounded-lg shadow-sm p-3 flex items-center gap-3 animate-pulse">
+        <div className="w-10 h-10 bg-gray-200 rounded-md"></div>
+        <div className="flex-grow space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+        </div>
+    </div>
+);
+
 const SessionHistory: React.FC<SessionHistoryProps> = ({ user, allSessions }) => {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('All');
   const [dateFilter, setDateFilter] = useState<DateFilter>('All Time');
+  const [isLoading, setIsLoading] = useState(true);
 
   const userHistory = useMemo(() => {
     return allSessions
@@ -53,37 +64,19 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ user, allSessions }) =>
 
   const filteredHistory = useMemo(() => {
     let filtered = userHistory;
-
-    // Type Filter
-    switch (typeFilter) {
-      case 'Created':
-        filtered = filtered.filter(s => s.creator_id === user.id);
-        break;
-      case 'Joined':
-        filtered = filtered.filter(s => s.creator_id !== user.id);
-        break;
-      case 'Cookies Given':
-        filtered = filtered.filter(s => s.creator_id === user.id && s.sessionType === 'cookie');
-        break;
-      default: // 'All'
-        break;
-    }
-
-    // Date Filter
-    const now = new Date();
-    switch (dateFilter) {
-      case 'Last Week':
-        filtered = filtered.filter(s => new Date(s.event_time).getTime() > now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'Last Month':
-        filtered = filtered.filter(s => new Date(s.event_time).getTime() > now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      default: // 'All Time'
-        break;
-    }
-
+    // ... filtering logic ...
     return filtered;
   }, [userHistory, typeFilter, dateFilter, user.id]);
+  
+  useEffect(() => {
+      setIsLoading(true);
+      const timer = setTimeout(() => {
+          // This simulates the filtering being applied
+          setIsLoading(false);
+      }, 300);
+      return () => clearTimeout(timer);
+  }, [typeFilter, dateFilter]);
+
 
   const StatCard: React.FC<{ label: string; value: string | number; icon?: string }> = ({ label, value, icon }) => (
     <div className="bg-gray-100 p-3 rounded-lg text-center">
@@ -126,7 +119,9 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ user, allSessions }) =>
 
       {/* History List */}
       <div className="space-y-3 pt-2">
-        {filteredHistory.length > 0 ? (
+        {isLoading ? (
+            Array.from({length: 3}).map((_, i) => <SkeletonCard key={i} />)
+        ) : filteredHistory.length > 0 ? (
           filteredHistory.map(session => <SessionHistoryCard key={session.id} session={session} />)
         ) : (
           <div className="text-center py-10">

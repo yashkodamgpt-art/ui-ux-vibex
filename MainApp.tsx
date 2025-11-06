@@ -22,6 +22,8 @@ import ConfirmationDialog from './components/common/ConfirmationDialog';
 import CreateTagModal from './components/social/CreateTagModal';
 import AssignTagModal from './components/social/AssignTagModal';
 import VouchModal from './components/sessions/VouchModal';
+import ActiveSessionIndicator from './components/sessions/ActiveSessionIndicator'; // NEW
+import ActiveSessionsModal from './components/sessions/ActiveSessionsModal'; // NEW
 
 const campusZones = {
   "All": { coords: [23.1925, 72.6844] as [number, number], zoom: 16, radius: 9999 },
@@ -71,27 +73,17 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   const [sessionValid, setSessionValid] = useState(true);
   const [confirmation, setConfirmation] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
   const [vouchingSession, setVouchingSession] = useState<Session | null>(null);
-  
-  // NEW: Notifications state lifted from AlertsPage
   const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const [isAllSessionsModalOpen, setIsAllSessionsModalOpen] = useState(false); // NEW
 
   useEffect(() => { console.log('🎯 MainApp mounted for user:', user.profile.username); }, [user]);
 
-  // --- NOTIFICATION HANDLERS (LIFTED) ---
+  // --- NOTIFICATION HANDLERS ---
   const handleMarkAsRead = (notificationId: string) => { setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)); };
   const handleMarkAllAsRead = () => { setNotifications(prev => prev.map(n => ({ ...n, isRead: true }))); };
   const handleDeleteNotification = (notificationId: string) => { setNotifications(prev => prev.filter(n => n.id !== notificationId)); };
-  const handleNotificationAction = (notification: Notification, action: 'accept' | 'reject' | 'view') => {
-    console.log(`Action '${action}' on notification:`, notification);
-    if (notification.type === 'friend_request_received' && notification.user) {
-      if (action === 'accept') { handleAcceptRequest(notification.user.id); } 
-      else if (action === 'reject') { handleRejectRequest(notification.user.id); }
-      handleDeleteNotification(notification.id);
-    } else if (action === 'view') {
-      alert(`MOCK: Navigating to session: "${notification.session?.title}". This would switch to the Home tab.`);
-      handleMarkAsRead(notification.id);
-    }
-  };
+  const handleNotificationAction = (notification: Notification, action: 'accept' | 'reject' | 'view') => { console.log(`Action '${action}' on notification:`, notification); if (notification.type === 'friend_request_received' && notification.user) { if (action === 'accept') { handleAcceptRequest(notification.user.id); } else if (action === 'reject') { handleRejectRequest(notification.user.id); } handleDeleteNotification(notification.id); } else if (action === 'view') { alert(`MOCK: Navigating to session: "${notification.session?.title}". This would switch to the Home tab.`); handleMarkAsRead(notification.id); } };
+  const createNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => { const newNotif: Notification = { ...notification, id: `notif-${Date.now()}`, timestamp: new Date().toISOString(), isRead: false }; setNotifications(prev => [newNotif, ...prev]); };
 
   // --- SOCIAL HANDLERS ---
   const handleOpenCreateTagModal = () => { setEditingTag(null); setIsCreateTagModalOpen(true); };
@@ -127,23 +119,20 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   const handleLeaveVibe = async (sessionId: number) => { const leavingSession = sessions.find(s => s.id === sessionId); setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, participants: s.participants.filter(pId => pId !== user.id) } : s)); setActiveVibe(null); setIsChatVisible(false); if (leavingSession?.sessionType === 'cookie' && leavingSession.creator_id !== user.id) { setVouchingSession(leavingSession); } };
   const handleSendMessage = async (text: string, isSystemMessage = false) => { if (!activeVibe) return; const sender = isSystemMessage ? { username: 'System' } : { username: user.profile.username }; const senderId = isSystemMessage ? 'system' : user.id; const newMessage: SessionMessage = { id: Math.floor(Math.random() * 10000), sender_id: senderId, session_id: activeVibe.id, text: text, created_at: new Date().toISOString(), sender }; setChatMessages(prev => [...prev, newMessage]); };
 
-  // --- NEW: OWNERSHIP & VOUCH HANDLERS ---
-  const handleTransferOwnership = (sessionId: number, newOwnerId: string, newOwnerUsername: string) => {
-    let oldCreatorUsername = '';
-    const updatedSessions = sessions.map(s => { if (s.id === sessionId) { oldCreatorUsername = s.creator.username; return { ...s, creator_id: newOwnerId, creator: { username: newOwnerUsername } }; } return s; });
-    setSessions(updatedSessions);
-    if (activeVibe?.id === sessionId) { const updatedActiveVibe = updatedSessions.find(s => s.id === sessionId); if (updatedActiveVibe) setActiveVibe(updatedActiveVibe); }
-    handleSendMessage(`👑 ${oldCreatorUsername} made ${newOwnerUsername} the new leader.`, true);
-    const newNotification: Notification = { id: `notif-${Date.now()}`, type: 'ownership_transfer', session: { id: sessionId, title: activeVibe?.title || '', emoji: activeVibe?.emoji || '' }, timestamp: new Date().toISOString(), isRead: false };
-    setNotifications(prev => [newNotification, ...prev]);
-    setConfirmation(null);
-  };
+  // --- OWNERSHIP & VOUCH HANDLERS ---
+  const handleTransferOwnership = (sessionId: number, newOwnerId: string, newOwnerUsername: string) => { let oldCreatorUsername = ''; const updatedSessions = sessions.map(s => { if (s.id === sessionId) { oldCreatorUsername = s.creator.username; return { ...s, creator_id: newOwnerId, creator: { username: newOwnerUsername } }; } return s; }); setSessions(updatedSessions); if (activeVibe?.id === sessionId) { const updatedActiveVibe = updatedSessions.find(s => s.id === sessionId); if (updatedActiveVibe) setActiveVibe(updatedActiveVibe); } handleSendMessage(`👑 ${oldCreatorUsername} made ${newOwnerUsername} the new leader.`, true); createNotification({ type: 'ownership_transfer', session: { id: sessionId, title: activeVibe?.title || '', emoji: activeVibe?.emoji || '' } }); setConfirmation(null); };
   const handleVouch = (creatorId: string, skill: string, rating: number) => { console.log(`Vouching for ${creatorId} in skill ${skill} with rating ${rating}`); const points = 10; setFriends(prev => prev.map(f => f.id === creatorId ? { ...f, cookieScore: f.cookieScore + points } : f)); setVouchingSession(null); };
   
-  // --- PROFILE HANDLERS ---
+  // --- PROFILE & UI HANDLERS ---
   const handleOpenProfile = async (username: string) => alert(`Mock Mode: Cannot open profile for ${username}.`);
   const handleViewFriendProfile = (friend: Friend) => { const userToView: User = { id: friend.id, email: `${friend.username.toLowerCase()}@campus.dev`, profile: { username: friend.username, bio: `A ${friend.branch} student graduating in ${friend.year}.`, branch: friend.branch, year: friend.year, expertise: [], interests: [], cookieScore: friend.cookieScore, privacy: 'public', skillScores: {}, vouchHistory: [], gender: friend.gender, } }; setViewedUser(userToView); setIsProfileModalOpen(true); };
   const handleTabClick = (tab: AppTab) => setActiveTab(tab);
+
+  // --- NEW: ACTIVE SESSION INDICATOR LOGIC ---
+  const otherActiveUserSessions = useMemo(() => sessions.filter(s => s.id !== activeVibe?.id && s.participants.includes(user.id) && s.status === 'active' && (new Date(s.event_time).getTime() + s.duration * 60000) > Date.now()), [sessions, user.id, activeVibe]);
+  const allActiveUserSessions = useMemo(() => activeVibe ? [activeVibe, ...otherActiveUserSessions] : otherActiveUserSessions, [activeVibe, otherActiveUserSessions]);
+  const handleIndicatorTap = () => { if (!activeVibe) return; setActiveTab('Home'); setIsChatVisible(true); setTimeout(() => mapViewRef.current?.flyToSession(activeVibe), 100); };
+  const handleRequestLeaveFromIndicator = () => { if (!activeVibe) return; setConfirmation({ title: `Leave "${activeVibe.title}"?`, message: 'You will be removed from the session.', onConfirm: () => { handleLeaveVibe(activeVibe.id); setConfirmation(null); } }); };
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-green-50 flex flex-col">
@@ -152,8 +141,8 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
       <main className="flex-grow relative overflow-hidden">
         {error && (<div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg max-w-md w-11/12" role="alert">{/* ... */}</div>)}
           <div className={`h-full w-full ${activeTab === 'Home' ? 'block' : 'hidden'}`}><MapView ref={mapViewRef} isVisible={activeTab === 'Home'} isCreateMode={isPlacementMode} userLocation={userLocation} onSetUserLocation={setUserLocation} onMapClick={handleMapPlacement} events={filteredSessions} user={user} activeVibe={activeVibe} onCloseEvent={handleCloseEvent} onExtendEvent={handleExtendEvent} onJoinVibe={handleJoinVibe} onViewChat={() => setIsChatVisible(true)} activeFilter={activeFilter} campusZones={campusZones} friends={friends}/> <div className="fixed bottom-20 right-6 z-[1000] flex flex-col items-center space-y-4"> <MyLocationButton onClick={handleRecenterMap} disabled={!userLocation} /> <CreateSessionMenu isOpen={isCreateMenuOpen} onSelectType={handleSelectSessionType} /> <CreateEventButton onClick={handleCreateButtonClick} isActive={isCreateMenuOpen || isPlacementMode} /> </div> </div>
-          <div className={`h-full overflow-y-auto ${activeTab === 'Social' ? 'block' : 'hidden'}`}><SocialPage user={user} friends={friends} tags={tags} friendRequests={friendRequests} onSaveTag={handleSaveTag} onDeleteTag={handleDeleteTag} onRemoveFriend={handleRemoveFriend} onSaveFriendTags={handleSaveFriendTags} onSendRequest={handleSendRequest} onAcceptRequest={handleAcceptRequest} onRejectRequest={handleRejectRequest} onViewFriendProfile={handleViewFriendProfile} setConfirmation={setConfirmation} onOpenCreateTagModal={handleOpenCreateTagModal} onOpenEditTagModal={handleOpenEditTagModal} onOpenAssignTagModal={handleOpenAssignTagModal} /></div>
-          <div className={`h-full overflow-y-auto ${activeTab === 'Alerts' ? 'block' : 'hidden'}`}><AlertsPage user={user} notifications={notifications} onMarkAsRead={handleMarkAsRead} onMarkAllAsRead={handleMarkAllAsRead} onDeleteNotification={handleDeleteNotification} onNotificationAction={handleNotificationAction} /></div>
+          <div className={`h-full overflow-y-auto pb-16 ${activeTab === 'Social' ? 'block' : 'hidden'}`}><SocialPage user={user} friends={friends} tags={tags} friendRequests={friendRequests} onSaveTag={handleSaveTag} onDeleteTag={handleDeleteTag} onRemoveFriend={handleRemoveFriend} onSaveFriendTags={handleSaveFriendTags} onSendRequest={handleSendRequest} onAcceptRequest={handleAcceptRequest} onRejectRequest={handleRejectRequest} onViewFriendProfile={handleViewFriendProfile} setConfirmation={setConfirmation} onOpenCreateTagModal={handleOpenCreateTagModal} onOpenEditTagModal={handleOpenEditTagModal} onOpenAssignTagModal={handleOpenAssignTagModal} /></div>
+          <div className={`h-full overflow-y-auto pb-16 ${activeTab === 'Alerts' ? 'block' : 'hidden'}`}><AlertsPage user={user} notifications={notifications} onMarkAsRead={handleMarkAsRead} onMarkAllAsRead={handleMarkAllAsRead} onDeleteNotification={handleDeleteNotification} onNotificationAction={handleNotificationAction} /></div>
           <div className={`h-full overflow-y-auto ${activeTab === 'Profile' ? 'block' : 'hidden'}`}><ProfilePage user={user} onProfileUpdate={onProfileUpdate} sessions={sessions} /></div>
         
         <CreateEventModal isOpen={isCreateModalOpen} onClose={handleCancelCreate} onSubmit={handleCreateEvent} sessionType={selectedSessionType} tags={tags} friends={friends} user={user} />
@@ -165,7 +154,11 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
         <CreateTagModal isOpen={isCreateTagModalOpen} onClose={() => setIsCreateTagModalOpen(false)} onSave={handleSaveTag} existingTag={editingTag} />
         {assigningFriend && ( <AssignTagModal isOpen={isAssignTagModalOpen} onClose={() => setIsAssignTagModalOpen(false)} friend={assigningFriend} tags={tags} onSave={handleSaveFriendTags} onCreateTag={handleOpenCreateTagModal} /> )}
         {vouchingSession && ( <VouchModal isOpen={true} onClose={() => setVouchingSession(null)} session={vouchingSession} onVouch={handleVouch} /> )}
+        <ActiveSessionsModal isOpen={isAllSessionsModalOpen} onClose={() => setIsAllSessionsModalOpen(false)} sessions={allActiveUserSessions} onSessionSelect={(session) => { setIsAllSessionsModalOpen(false); setActiveTab('Home'); setTimeout(() => mapViewRef.current?.flyToSession(session), 100); }} />
       </main>
+      
+      {activeVibe && <ActiveSessionIndicator activeSession={activeVibe} otherSessionsCount={otherActiveUserSessions.length} onTap={handleIndicatorTap} onTapPlus={() => setIsAllSessionsModalOpen(true)} onLongPress={handleRequestLeaveFromIndicator} />}
+
       <BottomNavBar activeTab={activeTab} onTabClick={handleTabClick} />
     </div>
   );
