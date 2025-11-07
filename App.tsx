@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [authView, setAuthView] = useState<AuthView>('login');
   const [loading, setLoading] = useState(true);
 
+  // Using a ref to get the latest user state in callbacks without causing re-renders
   const userRef = useRef(currentUser);
 
   const setCurrentUser = useCallback((userOrUpdater: User | null | ((prevUser: User | null) => User | null)) => {
@@ -29,7 +30,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // --- REAL AUTHENTICATION ---
+  // Fetches the user's profile from the 'profiles' table.
   const loadUserProfile = useCallback(async (authUser: SupabaseUser) => {
     try {
       const { data, error } = await supabase
@@ -38,25 +39,25 @@ const App: React.FC = () => {
         .eq('id', authUser.id)
         .single();
       
-      if (error) {
-        console.error('Error fetching profile for user, signing out:', authUser.id, error);
-        // If profile doesn't exist yet (e.g., due to db trigger delay/failure),
-        // sign them out to prevent app crash and force a re-login.
+      // If there's an error (like profile not found), log the user out.
+      // This prevents the app from crashing if the profile creation trigger fails or is delayed.
+      if (error || !data) {
+        console.error('Error fetching profile or profile not found for user:', authUser.id, error);
         await supabase.auth.signOut();
         setCurrentUser(null);
         return;
       }
 
-      if (data) {
-        const appUser: User = {
-          id: authUser.id,
-          email: authUser.email,
-          profile: data,
-        };
-        setCurrentUser(appUser);
-      }
+      // Successfully fetched profile, construct the full User object.
+      const appUser: User = {
+        id: authUser.id,
+        email: authUser.email,
+        profile: data,
+      };
+      setCurrentUser(appUser);
+
     } catch (error) {
-      console.error('Error in loadUserProfile:', error);
+      console.error('An unexpected error occurred in loadUserProfile:', error);
       setCurrentUser(null);
     } finally {
       setLoading(false);
@@ -66,51 +67,46 @@ const App: React.FC = () => {
   useEffect(() => {
     setLoading(true);
 
-    // Check for an existing session on initial load
+    // Check for an existing session on initial load.
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         loadUserProfile(session.user);
       } else {
-        setLoading(false);
+        setLoading(false); // No session, stop loading.
       }
     });
     
-    // Set up a listener for auth state changes
+    // Set up a listener for auth state changes (sign in, sign out, token refresh).
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         if (session) {
           // A user is signed in or their token was refreshed.
           await loadUserProfile(session.user);
-        } else if (event === 'SIGNED_OUT') {
+        } else {
           // The user signed out.
           setCurrentUser(null);
-          setLoading(false);
         }
+        setLoading(false);
       }
     );
 
+    // Clean up the listener on component unmount.
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, [loadUserProfile, setCurrentUser]);
   
   const handleLogout = useCallback(async () => {
-    console.log('Logging out and clearing all storage...');
     const { error } = await supabase.auth.signOut();
-    localStorage.clear();
-    sessionStorage.clear();
     if (error) {
         console.error('Error during sign out:', error.message);
     }
-    // Force a reload to go back to the mock login flow
-    window.location.reload();
+    // The onAuthStateChange listener will handle setting user to null and re-rendering.
+    // No need to manually set user state here.
   }, []);
-
   
-  const handleProfileUpdate = async (updatedProfile: User['profile']) => {
-      if (!currentUser) return;
-      console.log('--- MOCK: Profile Update ---', updatedProfile);
-      // In mock mode, we just update the state locally.
+  const handleProfileUpdate = (updatedProfile: User['profile']) => {
+      // Sync the app's top-level state after a profile update from a child component.
       setCurrentUser(prevUser => {
         if (!prevUser) return null;
         return {
@@ -119,8 +115,6 @@ const App: React.FC = () => {
         };
       });
   };
-
-  // --- RENDER LOGIC ---
 
   if (loading) {
     return (
@@ -141,7 +135,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Render the app with our authenticated user
   return <MainApp user={currentUser} onLogout={handleLogout} onProfileUpdate={handleProfileUpdate} />;
 };
 
