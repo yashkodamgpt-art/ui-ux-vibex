@@ -16,7 +16,7 @@ import SocialPage from './components/social/SocialPage';
 import AlertsPage from './components/alerts/AlertsPage';
 import ProfilePage from './components/profile/ProfilePage';
 import CreateSessionMenu from './components/sessions/CreateSessionMenu';
-import FilterChipBar, { type CampusZoneName, type FilterChip } from './components/filters/FilterChipBar';
+import FilterChipBar, { type FilterChip } from './components/filters/FilterChipBar';
 import ConfirmationDialog from './components/common/ConfirmationDialog';
 import CreateTagModal from './components/social/CreateTagModal';
 // FIX: Module '"file:///components/social/AssignTagModal"' has no default export.
@@ -28,15 +28,7 @@ import ToastContainer, { type Toast } from './components/common/ToastContainer';
 import * as supabaseService from './lib/supabaseService';
 import * as subscriptions from './lib/subscriptions';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-
-const campusZones = {
-  "All": { coords: [23.1925, 72.6844] as [number, number], zoom: 16, radius: 9999 },
-  "Library": { coords: [23.1930, 72.6840] as [number, number], zoom: 18, radius: 100 },
-  "Hostel Area": { coords: [23.1905, 72.6860] as [number, number], zoom: 17.5, radius: 200 },
-  "Sports Complex": { coords: [23.1945, 72.6825] as [number, number], zoom: 17, radius: 250 },
-  "Mess 1": { coords: [23.1915, 72.6855] as [number, number], zoom: 18, radius: 80 },
-  "Academic Block": { coords: [23.1920, 72.6830] as [number, number], zoom: 17, radius: 200 },
-};
+import { campusZonesConfig as campusZones, type CampusZoneName } from './lib/campusConfig';
 
 interface MainAppProps {
   user: User;

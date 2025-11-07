@@ -14,9 +14,10 @@ const App: React.FC = () => {
   const [authView, setAuthView] = useState<AuthView>('login');
   const [loading, setLoading] = useState(true);
 
-  // Using a ref to get the latest user state in callbacks without causing re-renders
   const userRef = useRef(currentUser);
 
+  // This custom setter ensures the ref is always in sync with the state, immediately.
+  // It's wrapped in useCallback to maintain a stable reference for dependency arrays.
   const setCurrentUser = useCallback((userOrUpdater: User | null | ((prevUser: User | null) => User | null)) => {
     if (typeof userOrUpdater === 'function') {
         _setCurrentUser(prevUser => {
@@ -30,83 +31,189 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Fetches the user's profile from the 'profiles' table.
   const loadUserProfile = useCallback(async (authUser: SupabaseUser) => {
-    try {
-      console.log(`📥 Loading profile for: ${authUser.id}`);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-      
-      if (error || !data) {
-        console.error('Error fetching profile or profile not found for user:', authUser.id, error);
-        await supabase.auth.signOut();
-        setCurrentUser(null);
-        return;
-      }
+    if (authUser.aud !== 'authenticated') {
+      console.log('User session detected, but email not confirmed.');
+      setCurrentUser(null);
+      return;
+    }
+    console.log(`📥 Loading profile for: ${authUser.id}`);
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .maybeSingle();
 
-      const appUser: User = {
+    if (error) {
+      console.error("Error fetching profile:", error.message);
+      setCurrentUser(null);
+    } else if (profile) {
+      console.log(`✅ Profile loaded: ${profile.username}`);
+      // Ensure all profile fields from types.ts are populated
+      setCurrentUser({
         id: authUser.id,
         email: authUser.email,
         profile: {
-          ...data,
-          bio: data.bio || '',
-          expertise: data.expertise || [],
-          interests: data.interests || [],
-          skillScores: data.skillScores || {}, 
-          vouchHistory: data.vouchHistory || [],
-        },
-      };
-      setCurrentUser(appUser);
+          username: profile.username,
+          bio: profile.bio || '',
+          branch: profile.branch || 'Not set',
+          year: profile.year || 2025,
+          expertise: profile.expertise || [],
+          interests: profile.interests || [],
+          cookieScore: profile.cookie_score || 0,
+          privacy: profile.privacy || 'public',
+          skillScores: profile.skillScores || {},
+          vouchHistory: profile.vouchHistory || [],
+        }
+      });
+    } else {
+      // Profile doesn't exist, let's try to create it from signup metadata
+      const newUsername = authUser.user_metadata?.username;
+      if (newUsername) {
+        console.warn(`Profile for user ${authUser.id} not found. Attempting to create one.`);
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authUser.id,
+            username: newUsername,
+            bio: authUser.user_metadata?.bio || '',
+            privacy: authUser.user_metadata?.privacy || 'public',
+            branch: 'Not set', // Add defaults for new fields
+            year: 2025,
+            expertise: [],
+            interests: [],
+            cookie_score: 0,
+          })
+          .select()
+          .single();
 
-    } catch (error) {
-      console.error('An unexpected error occurred in loadUserProfile:', error);
-      setCurrentUser(null);
-    } finally {
-      setLoading(false);
+        if (insertError) {
+          console.error("Error creating profile fallback:", insertError.message);
+          setCurrentUser(null);
+        } else if (newProfile) {
+          console.log("Successfully created fallback profile.");
+          setCurrentUser({
+            id: authUser.id,
+            email: authUser.email,
+            profile: {
+              username: newProfile.username,
+              bio: newProfile.bio || '',
+              branch: newProfile.branch || 'Not set',
+              year: newProfile.year || 2025,
+              expertise: newProfile.expertise || [],
+              interests: newProfile.interests || [],
+              cookieScore: newProfile.cookie_score || 0,
+              privacy: newProfile.privacy || 'public',
+              skillScores: newProfile.skillScores || {},
+              vouchHistory: newProfile.vouchHistory || [],
+            }
+          });
+        }
+      } else {
+        console.error(`No profile found for user ${authUser.id} and username not found in metadata.`);
+        setCurrentUser(null);
+      }
     }
   }, [setCurrentUser]);
-
-  // This single useEffect, using onAuthStateChange, is the most robust way to handle Supabase auth.
-  // It correctly handles the initial session on page load, sign-ins, sign-outs, and token refreshes.
+  
   useEffect(() => {
     setLoading(true);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session) {
-          // A session exists. We only load the profile if the user in state is different.
-          // This prevents re-loading the profile on events like TOKEN_REFRESHED (e.g., tab focus).
-          if (userRef.current?.id !== session.user.id) {
-            await loadUserProfile(session.user);
-          } else {
-            // The user is the same, so we don't need to reload the profile.
-            // We just ensure the loading screen is turned off.
-            setLoading(false);
-          }
-        } else {
-          // No session exists, so the user is signed out.
-          setCurrentUser(null);
-          setLoading(false);
-        }
-      }
-    );
+    // This subscription needs to be accessible to the cleanup function.
+    let subscription: { unsubscribe: () => void; } | null = null;
 
+    // This function serializes the initial load and the listener setup to prevent race conditions.
+    const initializeAndListen = async () => {
+        // 1. Get the initial session on load
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+            console.error("Error getting session:", error.message);
+            setCurrentUser(null);
+        } else if (session?.user) {
+            console.log("Found initial session, loading profile...");
+            await loadUserProfile(session.user);
+        } else {
+            setCurrentUser(null);
+        }
+        
+        setLoading(false);
+
+        // 2. AFTER the initial load is complete, set up the listener for future changes.
+        const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log(`🔔 Auth state changed: ${event}`);
+            
+            // By this point, userRef is already populated from the initial load,
+            // so this check correctly handles redundant SIGNED_IN events.
+            if (event === 'SIGNED_IN' && session?.user) {
+                if (session.user.id !== userRef.current?.id) {
+                    await loadUserProfile(session.user);
+                } else {
+                    console.log('Ignoring redundant SIGNED_IN event for already loaded user.');
+                }
+            } else if (event === 'SIGNED_OUT') {
+                setCurrentUser(null);
+            }
+        });
+        subscription = data.subscription;
+    };
+
+    initializeAndListen();
+
+    // 3. Clean up the listener on unmount
     return () => {
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [loadUserProfile, setCurrentUser]);
   
   const handleLogout = useCallback(async () => {
+    // The onAuthStateChange listener will handle setting the user to null.
+    // We still clear storage as per user request to ensure a clean slate.
+    console.log('Logging out and clearing all storage...');
     const { error } = await supabase.auth.signOut();
+    localStorage.clear();
+    sessionStorage.clear();
     if (error) {
         console.error('Error during sign out:', error.message);
+        // If there was an error, we can still force a UI refresh to the root.
+        window.location.href = '/';
     }
-    // onAuthStateChange listener will handle setting user to null.
+    // On success, the onAuthStateChange listener will automatically handle
+    // updating the state and showing the login screen without a page reload.
   }, []);
-  
+
+  // CRITICAL FIX: This effect adds a listener that validates the session every time
+  // the user focuses on the tab. This prevents crashes from "zombie sessions" where
+  // the React state is out of sync with the true authentication state.
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+
+      // Only run the check if the app's state thinks a user is logged in.
+      if (userRef.current) { // Use ref here
+        console.log('🩺 Tab is visible, re-validating session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        // If there's no session, an error, or the user IDs don't match, it's a zombie/mismatched session.
+        if (error || !session || session.user.id !== userRef.current.id) {
+          console.error('💔 Session invalid or mismatched on tab focus! Forcing hard logout.', error);
+          alert("Your session has expired or is invalid. The application will now refresh. Please log in again.");
+          handleLogout();
+        } else {
+          console.log('✅ Session OK on tab focus.');
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [handleLogout]); // Dependency is only handleLogout (which is stable)
+
   const handleProfileUpdate = (updatedProfile: User['profile']) => {
       setCurrentUser(prevUser => {
         if (!prevUser) return null;
@@ -116,24 +223,55 @@ const App: React.FC = () => {
         };
       });
   };
+  
+  // SAFETY NET: This effect adds a timeout to the loading state
+  useEffect(() => {
+    // If the app is stuck in the loading state for too long, it might be a caching issue
+    // or a problem with the Supabase session. This acts as a safety net to prevent
+    // the user from being stuck on a loading screen indefinitely.
+    if (loading) {
+        const timeoutId = setTimeout(() => {
+            if (userRef.current) {
+              // If userRef has a user but loading is still true, something is wrong.
+              // But if userRef is null, we are likely just on the login screen, which is fine.
+              console.warn("App is taking too long to initialize (>10s) despite user session. Forcing a hard refresh and clearing storage.");
+              alert("Application is taking a while to load. We'll perform a quick refresh to resolve any potential issues.");
+              localStorage.clear();
+              sessionStorage.clear();
+              window.location.reload();
+            } else if (document.visibilityState === 'visible') {
+              // If no user and still loading, and tab is visible, it's also a problem.
+              console.warn("App is taking too long to initialize (>10s) with no user. Forcing a hard refresh.");
+              alert("Application is taking a while to load. We'll perform a quick refresh to resolve any potential issues.");
+              localStorage.clear();
+              sessionStorage.clear();
+              window.location.reload();
+            }
+
+        }, 10000); // 10 seconds
+
+        // If loading completes before the timeout, this cleanup function will clear it.
+        return () => clearTimeout(timeoutId);
+    }
+  }, [loading]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-green-50">
         <div className="text-center p-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Session...</p>
+          <p className="text-gray-600">Initializing...</p>
         </div>
       </div>
     );
   }
 
   if (!currentUser) {
-    return authView === 'login' ? (
-      <Login switchToSignUp={() => setAuthView('signup')} />
-    ) : (
-      <SignUp switchToLogin={() => setAuthView('login')} />
-    );
+    if (authView === 'login') {
+      return <Login switchToSignUp={() => setAuthView('signup')} />;
+    } else {
+      return <SignUp switchToLogin={() => setAuthView('login')} />;
+    }
   }
 
   return <MainApp user={currentUser} onLogout={handleLogout} onProfileUpdate={handleProfileUpdate} />;

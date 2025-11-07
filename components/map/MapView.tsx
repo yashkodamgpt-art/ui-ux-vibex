@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import type { Session, User, Friend } from '../../types';
-import type { CampusZoneName } from '../filters/FilterChipBar';
+import type { CampusZoneName } from '../../lib/campusConfig';
+import { DEFAULT_CAMPUS_COORDS } from '../../lib/campusConfig';
 
 declare const L: any;
 
-const IITGN_COORDS: [number, number] = [23.1925, 72.6844];
 const INITIAL_ZOOM = 13;
 const LOCATION_FOUND_ZOOM = 16;
 const CREATE_RADIUS_METERS = 5000;
@@ -113,7 +113,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>((props, ref) => {
   });
 
 
-  const [displayCoords, setDisplayCoords] = useState<{ lat: number; lng: number }>({ lat: IITGN_COORDS[0], lng: IITGN_COORDS[1] });
+  const [displayCoords, setDisplayCoords] = useState<{ lat: number; lng: number }>({ lat: DEFAULT_CAMPUS_COORDS[0], lng: DEFAULT_CAMPUS_COORDS[1] });
   const [error, setError] = useState<string | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(true);
 
@@ -122,7 +122,7 @@ const MapView = forwardRef<MapViewRef, MapViewProps>((props, ref) => {
     flyToSession: (session: Session) => { if (mapInstanceRef.current && session?.lat && session?.lng) { mapInstanceRef.current.flyTo([session.lat, session.lng], 18); } }
   }));
 
-  useEffect(() => { if (!mapRef.current || typeof L === 'undefined') { console.error("MapView: Leaflet library (L) is not defined or map container is not available."); setError("Map could not be loaded."); return; } const map = L.map(mapRef.current, { center: IITGN_COORDS, zoom: INITIAL_ZOOM, zoomControl: false }); mapInstanceRef.current = map; L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19, keepBuffer: 2, }).addTo(map); L.control.scale({ position: 'bottomright' }).addTo(map); userMarkerRef.current = L.marker(IITGN_COORDS).addTo(map); eventsLayerRef.current = L.layerGroup().addTo(map); setTimeout(() => map.invalidateSize(), 100); return () => { map.remove(); }; }, []);
+  useEffect(() => { if (!mapRef.current || typeof L === 'undefined') { console.error("MapView: Leaflet library (L) is not defined or map container is not available."); setError("Map could not be loaded."); return; } const map = L.map(mapRef.current, { center: DEFAULT_CAMPUS_COORDS, zoom: INITIAL_ZOOM, zoomControl: false }); mapInstanceRef.current = map; L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19, keepBuffer: 2, }).addTo(map); L.control.scale({ position: 'bottomright' }).addTo(map); userMarkerRef.current = L.marker(DEFAULT_CAMPUS_COORDS).addTo(map); eventsLayerRef.current = L.layerGroup().addTo(map); setTimeout(() => map.invalidateSize(), 100); return () => { map.remove(); }; }, []);
   useEffect(() => { if (!mapInstanceRef.current) return; setLoadingLocation(true); setError(null); const locationTimeout = setTimeout(() => { setError('Could not get your location in time. Using default campus location.'); setLoadingLocation(false); }, 5000); navigator.geolocation.getCurrentPosition( (position) => { clearTimeout(locationTimeout); const userCoords: [number, number] = [position.coords.latitude, position.coords.longitude]; onSetUserLocation(userCoords); if (mapInstanceRef.current) { mapInstanceRef.current.flyTo(userCoords, LOCATION_FOUND_ZOOM); if (userMarkerRef.current) userMarkerRef.current.setLatLng(userCoords); } setDisplayCoords({ lat: userCoords[0], lng: userCoords[1] }); setError(null); setLoadingLocation(false); }, (geoError: GeolocationPositionError) => { clearTimeout(locationTimeout); let errorMessage = 'Using default location. Enable GPS for accuracy.'; if (geoError.code === geoError.PERMISSION_DENIED) { errorMessage = 'Location access denied. Enable it for full functionality.'; } setError(errorMessage); setLoadingLocation(false); }, { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 } ); return () => clearTimeout(locationTimeout); }, [onSetUserLocation]);
   useEffect(() => { if (isVisible && mapInstanceRef.current) { setTimeout(() => mapInstanceRef.current.invalidateSize(), 100); } }, [isVisible]);
   useEffect(() => { if (mapInstanceRef.current && activeFilter && campusZones[activeFilter]) { const zone = campusZones[activeFilter]; mapInstanceRef.current.flyTo(zone.coords, zone.zoom); } }, [activeFilter, campusZones]);

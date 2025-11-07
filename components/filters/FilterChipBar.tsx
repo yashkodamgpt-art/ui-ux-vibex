@@ -1,6 +1,5 @@
 import React from 'react';
-
-export type CampusZoneName = "All" | "Library" | "Hostel Area" | "Sports Complex" | "Mess 1" | "Academic Block";
+import type { CampusZoneName } from '../../lib/campusConfig';
 
 export interface FilterChip {
   name: CampusZoneName;
