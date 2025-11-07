@@ -33,14 +33,13 @@ const App: React.FC = () => {
   // Fetches the user's profile from the 'profiles' table.
   const loadUserProfile = useCallback(async (authUser: SupabaseUser) => {
     try {
+      console.log(`📥 Loading profile for: ${authUser.id}`);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
         .single();
       
-      // If there's an error (like profile not found), log the user out.
-      // This prevents the app from crashing if the profile creation trigger fails or is delayed.
       if (error || !data) {
         console.error('Error fetching profile or profile not found for user:', authUser.id, error);
         await supabase.auth.signOut();
@@ -48,11 +47,17 @@ const App: React.FC = () => {
         return;
       }
 
-      // Successfully fetched profile, construct the full User object.
       const appUser: User = {
         id: authUser.id,
         email: authUser.email,
-        profile: data,
+        profile: {
+          ...data,
+          bio: data.bio || '',
+          expertise: data.expertise || [],
+          interests: data.interests || [],
+          skillScores: data.skillScores || {}, 
+          vouchHistory: data.vouchHistory || [],
+        },
       };
       setCurrentUser(appUser);
 
@@ -64,35 +69,33 @@ const App: React.FC = () => {
     }
   }, [setCurrentUser]);
 
+  // This single useEffect, using onAuthStateChange, is the most robust way to handle Supabase auth.
+  // It correctly handles the initial session on page load, sign-ins, sign-outs, and token refreshes.
   useEffect(() => {
     setLoading(true);
 
-    // Check for an existing session on initial load.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        loadUserProfile(session.user);
-      } else {
-        setLoading(false); // No session, stop loading.
-      }
-    });
-    
-    // Set up a listener for auth state changes (sign in, sign out, token refresh).
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
         if (session) {
-          // A user is signed in or their token was refreshed.
-          await loadUserProfile(session.user);
+          // A session exists. We only load the profile if the user in state is different.
+          // This prevents re-loading the profile on events like TOKEN_REFRESHED (e.g., tab focus).
+          if (userRef.current?.id !== session.user.id) {
+            await loadUserProfile(session.user);
+          } else {
+            // The user is the same, so we don't need to reload the profile.
+            // We just ensure the loading screen is turned off.
+            setLoading(false);
+          }
         } else {
-          // The user signed out.
+          // No session exists, so the user is signed out.
           setCurrentUser(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
-    // Clean up the listener on component unmount.
     return () => {
-      authListener.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, [loadUserProfile, setCurrentUser]);
   
@@ -101,12 +104,10 @@ const App: React.FC = () => {
     if (error) {
         console.error('Error during sign out:', error.message);
     }
-    // The onAuthStateChange listener will handle setting user to null and re-rendering.
-    // No need to manually set user state here.
+    // onAuthStateChange listener will handle setting user to null.
   }, []);
   
   const handleProfileUpdate = (updatedProfile: User['profile']) => {
-      // Sync the app's top-level state after a profile update from a child component.
       setCurrentUser(prevUser => {
         if (!prevUser) return null;
         return {

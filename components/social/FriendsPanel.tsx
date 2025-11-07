@@ -42,7 +42,8 @@ const FriendsPanel: React.FC<FriendsPanelProps> = ({ isLoading, friends, tags, o
         break;
       case 'Recent':
       default:
-        // 'Recent' is the default mock order for now
+        // 'Recent' sort relies on the default order from the server.
+        // A dedicated timestamp would be needed for a more precise sort.
         break;
     }
 

@@ -1,3 +1,4 @@
+
 // lib/supabaseService.ts - FIXED VERSION
 import { supabase } from './supabaseClient';
 import type {
@@ -13,7 +14,8 @@ import type {
 } from '../types';
 
 // Helper function to handle Supabase responses
-async function handleResponse<T>(query: Promise<{ data: T | null; error: any }>) {
+// FIX: Changed query parameter type from `Promise` to `PromiseLike` to support Supabase's thenable query builders.
+async function handleResponse<T>(query: PromiseLike<{ data: T | null; error: any }>) {
   try {
     const { data, error } = await query;
     if (error) {
@@ -187,6 +189,21 @@ export const leaveSession = async (sessionId: number, userId: string) => {
     return { data: null, error: e };
   }
 };
+
+// --- VOUCHING ---
+export const createVouch = (voucherId: string, receiverId: string, sessionId: number, skill: string, points: number) => {
+  const vouchData = {
+    voucher_id: voucherId,
+    receiver_id: receiverId,
+    session_id: sessionId,
+    skill,
+    points,
+  };
+  return handleResponse<any>(
+    supabase.from('vouches').insert([vouchData])
+  );
+};
+
 
 // --- FRIENDS & SOCIAL ---
 
@@ -414,7 +431,7 @@ export const updateUserProfile = (userId: string, profileData: Partial<any>) => 
         data: data
           ? data.map((p: any) => ({
               username: p.username,
-              bio: p.bio,
+              bio: p.bio || '',
               branch: p.branch,
               year: p.year,
               expertise: p.expertise || [],

@@ -60,44 +60,42 @@ const AssignTagModal: React.FC<AssignTagModalProps> = ({ isOpen, onClose, friend
             Add <span className="text-green-600">{friend.username}</span> to Tags
           </h2>
           
-          <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+          <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-gray-50">
             {tags.length > 0 ? tags.map(tag => (
-              <label key={tag.id} className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                <input 
-                  type="checkbox" 
+              <label key={tag.id} className="flex items-center p-2 rounded-lg hover:bg-gray-100 cursor-pointer">
+                <input
+                  type="checkbox"
                   checked={selectedTagIds.includes(tag.id)}
                   onChange={() => handleToggleTag(tag.id)}
-                  className="h-5 w-5 rounded text-green-600 border-gray-300 focus:ring-green-500" 
+                  className="h-5 w-5 rounded text-green-600 border-gray-300 focus:ring-green-500"
                 />
-                <span className="ml-4 flex items-center">
-                  <span className="text-xl mr-2">{tag.emoji}</span>
-                  <span className="font-semibold text-gray-800">{tag.name}</span>
+                <span className="ml-3 flex items-center text-sm">
+                  <span className="mr-2">{tag.emoji}</span>
+                  <span className="font-semibold">{tag.name}</span>
+                  <span className="text-gray-500 ml-1">({tag.memberIds.length})</span>
                 </span>
               </label>
             )) : (
-                <p className="text-center text-gray-500 py-4">No tags created yet.</p>
+              <p className="text-center text-sm text-gray-500 py-4">No tags created yet.</p>
             )}
           </div>
           
-          <div>
-            <button 
-                type="button" 
-                onClick={handleQuickCreate}
-                className="w-full text-sm text-center text-green-600 font-semibold p-2 rounded-lg hover:bg-green-50"
-            >
-                + Create a New Tag
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleQuickCreate}
+            className="w-full text-center text-sm font-semibold text-green-600 hover:underline"
+          >
+            + Create a new tag
+          </button>
 
           <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
             <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Cancel</button>
-            {/* Fix: Completed the submit button which was truncated in the original file. */}
-            <button type="submit" className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">Save</button>
+            <button type="submit" className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">Save Tags</button>
           </div>
         </form>
       </div>
     </>
   );
 };
-// Fix: Added missing default export to resolve module import error.
+
 export default AssignTagModal;

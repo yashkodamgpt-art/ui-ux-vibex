@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { User, Friend, Tag, FriendRequest } from '../../types';
 import FriendsPanel from './FriendsPanel';
 import TagsPanel from './TagsPanel';
@@ -28,16 +28,11 @@ interface SocialPageProps {
 
 const SocialPage: React.FC<SocialPageProps> = (props) => {
   const [activeTab, setActiveTab] = useState<SocialTab>('Friends');
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Simulate loading data when the component mounts
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500); // Simulate a 500ms network request
-    return () => clearTimeout(timer);
-  }, []);
+  // The internal loading state has been removed. The parent component `MainApp`
+  // now manages the initial loading state for the entire application.
+  // Skeletons in child components will now only appear if they have their
+  // own internal data fetching (like the SearchPanel).
 
   const tabs: SocialTab[] = ['Friends', 'Search', 'Tags'];
   const currentIndex = tabs.indexOf(activeTab);
@@ -73,13 +68,13 @@ const SocialPage: React.FC<SocialPageProps> = (props) => {
         <div className="h-full flex transition-transform duration-300 ease-out"
              style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
           <div className="min-w-full h-full overflow-y-auto bg-gray-50">
-            <FriendsPanel isLoading={isLoading} friends={props.friends} tags={props.tags} onViewProfile={props.onViewFriendProfile} onRemoveFriend={props.onRemoveFriend} onAssignToTags={props.onOpenAssignTagModal} />
+            <FriendsPanel isLoading={false} friends={props.friends} tags={props.tags} onViewProfile={props.onViewFriendProfile} onRemoveFriend={props.onRemoveFriend} onAssignToTags={props.onOpenAssignTagModal} />
           </div>
           <div className="min-w-full h-full overflow-y-auto bg-gray-50">
             <SearchPanel currentUser={props.user} friends={props.friends} friendRequests={props.friendRequests} onSendRequest={props.onSendRequest} onAcceptRequest={props.onAcceptRequest} onRejectRequest={props.onRejectRequest} onViewProfile={props.onViewFriendProfile} />
           </div>
           <div className="min-w-full h-full overflow-y-auto bg-gray-50">
-            <TagsPanel isLoading={isLoading} tags={props.tags} friends={props.friends} onViewProfile={props.onViewFriendProfile} onCreateTag={props.onOpenCreateTagModal} onEditTag={props.onOpenEditTagModal} onDeleteTag={props.onDeleteTag} />
+            <TagsPanel isLoading={false} tags={props.tags} friends={props.friends} onViewProfile={props.onViewFriendProfile} onCreateTag={props.onOpenCreateTagModal} onEditTag={props.onOpenEditTagModal} onDeleteTag={props.onDeleteTag} />
           </div>
         </div>
       </div>
