@@ -7,6 +7,9 @@ export const bannedWords: string[] = [
   'examplebadword',
   'profanitytest',
   'curseword',
+  'fuck',
+  'sex',
+  
   
   // Hate Speech Keywords - Using placeholder examples
   'hatespeechexample',

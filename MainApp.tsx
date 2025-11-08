@@ -230,19 +230,19 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   const handleSocialActions = useMemo(() => ({
     handleSendRequest: async (toUserId: string) => {
       const { data, error } = await supabaseService.sendFriendRequest(user.id, toUserId);
-      if (error || !data) { addToast("Could not send request.", "error"); } else { const newRequest: FriendRequest = { id: data[0].id, fromUserId: user.id, toUserId }; setFriendRequests(prev => [...prev, newRequest]); addToast('Friend request sent!', 'success'); }
+      if (error || !data) { addToast(error?.message || "Could not send request.", "error"); } else { const newRequest: FriendRequest = { id: data[0].id, fromUserId: user.id, toUserId }; setFriendRequests(prev => [...prev, newRequest]); addToast('Friend request sent!', 'success'); }
     },
     handleAcceptRequest: async (fromUserId: string) => {
       const request = friendRequests.find(req => req.fromUserId === fromUserId && req.toUserId === user.id);
       if (!request) { addToast('Friend request not found.', 'error'); return; }
       const { error } = await supabaseService.acceptFriendRequest(request.id, fromUserId, user.id);
-      if (error) { addToast("Could not accept request.", "error"); } else { addToast(`Friend request accepted!`, 'success'); const [friendsRes, requestsRes] = await Promise.all([ supabaseService.fetchFriends(user.id), supabaseService.fetchFriendRequests(user.id) ]); if (friendsRes.data) setFriends(friendsRes.data); if (requestsRes.data) setFriendRequests(requestsRes.data); }
+      if (error) { addToast(error.message || "Could not accept request.", "error"); } else { addToast(`Friend request accepted!`, 'success'); const [friendsRes, requestsRes] = await Promise.all([ supabaseService.fetchFriends(user.id), supabaseService.fetchFriendRequests(user.id) ]); if (friendsRes.data) setFriends(friendsRes.data); if (requestsRes.data) setFriendRequests(requestsRes.data); }
     },
     handleRejectRequest: async (fromUserId: string) => {
       const request = friendRequests.find(req => req.fromUserId === fromUserId && req.toUserId === user.id);
       if (!request) { addToast('Friend request not found.', 'error'); return; }
       const { error } = await supabaseService.rejectFriendRequest(request.id);
-      if (error) { addToast("Could not reject request.", "error"); } else { setFriendRequests(prev => prev.filter(req => req.id !== request.id)); addToast('Friend request rejected.', 'info'); }
+      if (error) { addToast(error.message || "Could not reject request.", "error"); } else { setFriendRequests(prev => prev.filter(req => req.id !== request.id)); addToast('Friend request rejected.', 'info'); }
     },
   }), [user.id, addToast, friendRequests]);
   const { handleSendRequest, handleAcceptRequest, handleRejectRequest } = handleSocialActions;
