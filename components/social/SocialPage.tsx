@@ -24,6 +24,7 @@ interface SocialPageProps {
   onOpenCreateTagModal: () => void;
   onOpenEditTagModal: (tag: Tag) => void;
   onOpenAssignTagModal: (friend: Friend) => void;
+  onOpenDM: (friendId: string) => void; // NEW
 }
 
 const SocialPage: React.FC<SocialPageProps> = (props) => {
@@ -68,7 +69,7 @@ const SocialPage: React.FC<SocialPageProps> = (props) => {
         <div className="h-full flex transition-transform duration-300 ease-out"
              style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
           <div className="min-w-full h-full overflow-y-auto bg-gray-50">
-            <FriendsPanel isLoading={false} friends={props.friends} tags={props.tags} onViewProfile={props.onViewFriendProfile} onRemoveFriend={props.onRemoveFriend} onAssignToTags={props.onOpenAssignTagModal} />
+            <FriendsPanel isLoading={false} friends={props.friends} tags={props.tags} onViewProfile={props.onViewFriendProfile} onRemoveFriend={props.onRemoveFriend} onAssignToTags={props.onOpenAssignTagModal} onOpenDM={props.onOpenDM} />
           </div>
           <div className="min-w-full h-full overflow-y-auto bg-gray-50">
             <SearchPanel currentUser={props.user} friends={props.friends} friendRequests={props.friendRequests} onSendRequest={props.onSendRequest} onAcceptRequest={props.onAcceptRequest} onRejectRequest={props.onRejectRequest} onViewProfile={props.onViewFriendProfile} />

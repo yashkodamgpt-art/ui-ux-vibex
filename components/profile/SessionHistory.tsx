@@ -57,8 +57,8 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ user }) => {
       return acc;
     }, {} as Record<SessionType, number>);
 
-    // FIX: Changed sort function to use index access (b[1] - a[1]) to resolve TypeScript error.
-    // This helps the compiler correctly infer the types for the arithmetic operation.
+    // FIX: Using array index access for sorting is more robust for TypeScript's type inference,
+    // resolving potential arithmetic operation errors if types are not correctly inferred from destructuring.
     const mostFrequentType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
 
     return {

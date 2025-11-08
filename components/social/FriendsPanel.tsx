@@ -11,6 +11,7 @@ interface FriendsPanelProps {
   onViewProfile: (friend: Friend) => void;
   onRemoveFriend: (friendId: string) => void;
   onAssignToTags: (friend: Friend) => void;
+  onOpenDM: (friendId: string) => void; // NEW
 }
 
 const SkeletonFriendCard: React.FC = () => (
@@ -24,7 +25,7 @@ const SkeletonFriendCard: React.FC = () => (
     </div>
 );
 
-const FriendsPanel: React.FC<FriendsPanelProps> = ({ isLoading, friends, tags, onViewProfile, onRemoveFriend, onAssignToTags }) => {
+const FriendsPanel: React.FC<FriendsPanelProps> = ({ isLoading, friends, tags, onViewProfile, onRemoveFriend, onAssignToTags, onOpenDM }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('Recent');
 
@@ -90,6 +91,7 @@ const FriendsPanel: React.FC<FriendsPanelProps> = ({ isLoading, friends, tags, o
                 onViewProfile={onViewProfile}
                 onRemoveFriend={onRemoveFriend}
                 onAssignToTags={onAssignToTags}
+                onOpenDM={onOpenDM}
             />
           ))}
         </div>

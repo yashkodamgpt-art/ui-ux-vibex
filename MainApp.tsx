@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import type { User, Session, SessionMessage, Profile, SessionType, Friend, Tag, FriendRequest, Notification } from './types';
+import type { User, Session, SessionMessage, Profile, SessionType, Friend, Tag, FriendRequest, Notification, Conversation } from './types';
 import MapView, { type MapViewRef } from './components/map/MapView';
 import CreateEventModal from './components/events/CreateEventModal';
 import MyLocationButton from './components/common/MyLocationButton';
@@ -74,6 +74,9 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isAllSessionsModalOpen, setIsAllSessionsModalOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // NEW: State to handle opening DMs from other tabs
+  const [dmTarget, setDmTarget] = useState<Omit<Conversation, 'messages' | 'unreadCount'> | null>(null);
 
   // Refs to hold latest state for subscription callbacks, preventing stale closures
   const sessionsRef = useRef(sessions);
@@ -247,6 +250,18 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
   }), [user.id, addToast, friendRequests]);
   const { handleSendRequest, handleAcceptRequest, handleRejectRequest } = handleSocialActions;
 
+  // NEW: Handler to open a DM from anywhere in the app
+  const handleOpenDM = useCallback(async (friendId: string) => {
+    addToast('Opening conversation...', 'info');
+    const { data: convo, error } = await supabaseService.getOrCreateConversation(user.id, friendId);
+    if (error || !convo) {
+      addToast('Could not start conversation.', 'error');
+      return;
+    }
+    setDmTarget(convo);
+    setActiveTab('Alerts');
+  }, [user.id, addToast]);
+
   const handleNotificationAction = useCallback((notification: Notification, action: 'accept' | 'reject' | 'view') => { try { if (notification.type === 'friend_request_received' && notification.user) { if (action === 'accept') { handleAcceptRequest(notification.user.id); } else if (action === 'reject') { handleRejectRequest(notification.user.id); } handleDeleteNotification(notification.id); } else if (action === 'view' && notification.session) { addToast(`Navigating to "${notification.session.title}"...`, 'info'); setActiveTab('Home'); setTimeout(() => { const sessionToFly = sessions.find(s => s.id === notification.session?.id); if (sessionToFly) mapViewRef.current?.flyToSession(sessionToFly); }, 100); handleMarkAsRead(notification.id); } } catch (e) { console.error("Error handling notification action:", e); } }, [handleAcceptRequest, handleRejectRequest, handleDeleteNotification, addToast, sessions, handleMarkAsRead]);
   const handleOpenCreateTagModal = useCallback(() => { setEditingTag(null); setIsCreateTagModalOpen(true); }, []);
   const handleOpenEditTagModal = useCallback((tag: Tag) => { setEditingTag(tag); setIsCreateTagModalOpen(true); }, []);
@@ -392,8 +407,8 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
       <main className="flex-grow relative overflow-hidden">
         {error && (<div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg max-w-md w-11/12" role="alert"><span className="block sm:inline">{error}</span></div>)}
           <div className={`h-full w-full ${activeTab === 'Home' ? 'block' : 'hidden'}`}><MapView ref={mapViewRef} isVisible={activeTab === 'Home'} isCreateMode={isPlacementMode} userLocation={userLocation} onSetUserLocation={setUserLocation} onMapClick={handleMapPlacement} events={filteredSessions} user={user} activeVibe={activeVibe} onCloseEvent={handleCloseEvent} onExtendEvent={handleExtendEvent} onJoinVibe={handleJoinVibe} onViewChat={onViewChat} activeFilter={activeFilter} campusZones={campusZones} friends={friends}/> <div className="fixed bottom-20 right-6 z-[1000] flex flex-col items-center space-y-4"> <MyLocationButton onClick={handleRecenterMap} disabled={!userLocation} /> <CreateSessionMenu isOpen={isCreateMenuOpen} onSelectType={handleSelectSessionType} /> <CreateEventButton onClick={handleCreateButtonClick} isActive={isCreateMenuOpen || isPlacementMode} /> </div> </div>
-          <div className={`h-full overflow-y-auto pb-16 ${activeTab === 'Social' ? 'block' : 'hidden'}`}><SocialPage user={user} friends={friends} tags={tags} friendRequests={friendRequests} onSaveTag={handleSaveTag} onDeleteTag={handleDeleteTag} onRemoveFriend={handleRemoveFriend} onSaveFriendTags={handleSaveFriendTags} onSendRequest={handleSendRequest} onAcceptRequest={handleAcceptRequest} onRejectRequest={handleRejectRequest} onViewFriendProfile={handleViewFriendProfile} setConfirmation={setConfirmation} onOpenCreateTagModal={handleOpenCreateTagModal} onOpenEditTagModal={handleOpenEditTagModal} onOpenAssignTagModal={handleOpenAssignTagModal} /></div>
-          <div className={`h-full overflow-y-auto pb-16 ${activeTab === 'Alerts' ? 'block' : 'hidden'}`}><AlertsPage user={user} friends={friends} notifications={notifications} onMarkAsRead={handleMarkAsRead} onMarkAllAsRead={handleMarkAllAsRead} onDeleteNotification={handleDeleteNotification} onNotificationAction={handleNotificationAction} /></div>
+          <div className={`h-full overflow-y-auto pb-16 ${activeTab === 'Social' ? 'block' : 'hidden'}`}><SocialPage user={user} friends={friends} tags={tags} friendRequests={friendRequests} onSaveTag={handleSaveTag} onDeleteTag={handleDeleteTag} onRemoveFriend={handleRemoveFriend} onSaveFriendTags={handleSaveFriendTags} onSendRequest={handleSendRequest} onAcceptRequest={handleAcceptRequest} onRejectRequest={handleRejectRequest} onViewFriendProfile={handleViewFriendProfile} setConfirmation={setConfirmation} onOpenCreateTagModal={handleOpenCreateTagModal} onOpenEditTagModal={handleOpenEditTagModal} onOpenAssignTagModal={handleOpenAssignTagModal} onOpenDM={handleOpenDM} /></div>
+          <div className={`h-full overflow-y-auto pb-16 ${activeTab === 'Alerts' ? 'block' : 'hidden'}`}><AlertsPage user={user} friends={friends} notifications={notifications} onMarkAsRead={handleMarkAsRead} onMarkAllAsRead={handleMarkAllAsRead} onDeleteNotification={handleDeleteNotification} onNotificationAction={handleNotificationAction} dmTarget={dmTarget} onDmTargetHandled={() => setDmTarget(null)} /></div>
           <div className={`h-full overflow-y-auto pb-24 ${activeTab === 'Profile' ? 'block' : 'hidden'}`}><ProfilePage user={user} onProfileUpdate={onProfileUpdate} /></div>
         
         <CreateEventModal isOpen={isCreateModalOpen} onClose={handleCancelCreate} onSubmit={handleCreateEvent} sessionType={selectedSessionType} tags={tags} friends={friends} user={user} />

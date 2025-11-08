@@ -5,6 +5,7 @@ interface ConversationPreviewCardProps {
   conversation: Conversation;
   friend: Friend;
   onClick: () => void;
+  animationStyle: React.CSSProperties;
 }
 
 // Helper to format relative time
@@ -39,7 +40,7 @@ const stringToColor = (str: string) => {
 }
 
 
-const ConversationPreviewCard: React.FC<ConversationPreviewCardProps> = ({ conversation, friend, onClick }) => {
+const ConversationPreviewCard: React.FC<ConversationPreviewCardProps> = ({ conversation, friend, onClick, animationStyle }) => {
   const lastMessage = conversation.messages[conversation.messages.length - 1];
   const isUnread = conversation.unreadCount > 0;
   
@@ -49,7 +50,8 @@ const ConversationPreviewCard: React.FC<ConversationPreviewCardProps> = ({ conve
   return (
     <button 
       onClick={onClick}
-      className={`w-full text-left p-3 flex items-center space-x-4 rounded-xl transition-colors ${isUnread ? 'bg-green-100' : 'bg-white hover:bg-gray-50'}`}
+      style={animationStyle}
+      className="animate-fade-slide-up w-full text-left p-4 flex items-center space-x-4 rounded-xl bg-white hover:bg-gray-50 hover:shadow-md active:scale-[0.98] transition-transform duration-150"
     >
       {/* Avatar */}
       <div className="relative flex-shrink-0">
@@ -59,23 +61,23 @@ const ConversationPreviewCard: React.FC<ConversationPreviewCardProps> = ({ conve
         >
           <span className="text-2xl font-bold text-white">{initial}</span>
         </div>
+        {isUnread && (
+            <div className="absolute top-0 right-0 flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full bg-green-500 text-white text-xs font-bold ring-2 ring-white animate-pulse-dot" title={`${conversation.unreadCount} unread messages`}>
+                {conversation.unreadCount}
+            </div>
+        )}
       </div>
 
       {/* Info */}
       <div className="flex-grow overflow-hidden">
         <div className="flex items-baseline justify-between">
-          <h3 className="font-bold text-gray-800 truncate">{friend.username}</h3>
-          <p className="text-xs text-gray-500 flex-shrink-0 ml-2">{lastMessage ? formatRelativeTime(lastMessage.timestamp) : ''}</p>
+          <h3 className="font-bold text-base text-gray-800 truncate">{friend.username}</h3>
+          <p className="text-xs text-gray-400 flex-shrink-0 ml-2">{lastMessage ? formatRelativeTime(lastMessage.timestamp) : ''}</p>
         </div>
-        <div className="flex items-start justify-between mt-1">
-          <p className={`text-sm truncate pr-2 ${isUnread ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>
+        <div className="mt-1">
+          <p className={`text-sm line-clamp-2 ${isUnread ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>
             {lastMessage ? lastMessage.text : 'No messages yet'}
           </p>
-          {isUnread && (
-            <span className="flex-shrink-0 h-6 w-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-              {conversation.unreadCount}
-            </span>
-          )}
         </div>
       </div>
     </button>

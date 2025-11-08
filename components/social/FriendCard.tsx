@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { Friend } from '../../types';
 
@@ -7,6 +6,7 @@ interface FriendCardProps {
   onViewProfile: (friend: Friend) => void;
   onRemoveFriend: (friendId: string) => void;
   onAssignToTags: (friend: Friend) => void;
+  onOpenDM: (friendId: string) => void;
 }
 
 // Simple hash to get a color from a string
@@ -23,7 +23,7 @@ const stringToColor = (str: string) => {
     return color;
 }
 
-const FriendCard: React.FC<FriendCardProps> = ({ friend, onViewProfile, onRemoveFriend, onAssignToTags }) => {
+const FriendCard: React.FC<FriendCardProps> = ({ friend, onViewProfile, onRemoveFriend, onAssignToTags, onOpenDM }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const initial = friend.username.charAt(0).toUpperCase();
@@ -40,7 +40,13 @@ const FriendCard: React.FC<FriendCardProps> = ({ friend, onViewProfile, onRemove
   }, []);
 
   return (
-    <div className="bg-white p-3 rounded-xl shadow-md flex items-center space-x-4">
+    <div 
+      onClick={() => onOpenDM(friend.id)}
+      className="bg-white p-3 rounded-xl shadow-md flex items-center space-x-4 cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition-all duration-200 ease-out"
+      role="button"
+      tabIndex={0}
+      aria-label={`Message ${friend.username}`}
+    >
       {/* Profile Initial */}
       <div 
         className="h-12 w-12 rounded-full flex-shrink-0 flex items-center justify-center"
@@ -62,10 +68,14 @@ const FriendCard: React.FC<FriendCardProps> = ({ friend, onViewProfile, onRemove
       {/* Action Button */}
       <div className="flex-shrink-0 relative" ref={menuRef}>
         <button
-            onClick={() => setIsMenuOpen(prev => !prev)}
-            className="p-2 text-gray-500 rounded-full hover:bg-gray-200"
+            onClick={(e) => {
+                e.stopPropagation(); // Prevent onOpenDM from firing
+                setIsMenuOpen(prev => !prev);
+            }}
+            className="p-2 text-gray-500 rounded-full hover:bg-gray-200 z-10"
             aria-haspopup="true"
             aria-expanded={isMenuOpen}
+            aria-label="More options"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -73,11 +83,11 @@ const FriendCard: React.FC<FriendCardProps> = ({ friend, onViewProfile, onRemove
         </button>
 
         {isMenuOpen && (
-             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 origin-top-right transition-all duration-200 ease-in-out transform opacity-100 scale-100" role="menu" aria-orientation="vertical">
+             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 origin-top-right transition-all duration-200 ease-in-out transform opacity-100 scale-100" role="menu" aria-orientation="vertical">
                 <div className="py-1" role="none">
-                    <button onClick={() => { onViewProfile(friend); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">View Profile</button>
-                    <button onClick={() => { onAssignToTags(friend); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Add to Tag</button>
-                    <button onClick={() => { onRemoveFriend(friend.id); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">Remove Friend</button>
+                    <button onClick={(e) => { e.stopPropagation(); onViewProfile(friend); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">View Profile</button>
+                    <button onClick={(e) => { e.stopPropagation(); onAssignToTags(friend); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Add to Tag</button>
+                    <button onClick={(e) => { e.stopPropagation(); onRemoveFriend(friend.id); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">Remove Friend</button>
                 </div>
             </div>
         )}

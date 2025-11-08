@@ -18,6 +18,8 @@ interface AlertsPageProps {
   onMarkAllAsRead: () => void;
   onDeleteNotification: (notificationId: string) => void;
   onNotificationAction: (notification: Notification, action: 'accept' | 'reject' | 'view') => void;
+  dmTarget: Omit<Conversation, 'messages' | 'unreadCount'> | null; // NEW
+  onDmTargetHandled: () => void; // NEW
 }
 
 const AlertsPage: React.FC<AlertsPageProps> = ({ 
@@ -27,7 +29,9 @@ const AlertsPage: React.FC<AlertsPageProps> = ({
     onMarkAsRead, 
     onMarkAllAsRead, 
     onDeleteNotification, 
-    onNotificationAction 
+    onNotificationAction,
+    dmTarget,
+    onDmTargetHandled
 }) => {
   const [activeTab, setActiveTab] = useState<AlertsTab>('Messages');
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -81,6 +85,25 @@ const AlertsPage: React.FC<AlertsPageProps> = ({
 
     fetchAndSubscribe();
   }, [user.id]);
+
+  // NEW: Effect to handle opening a DM when triggered from another tab
+  useEffect(() => {
+    if (dmTarget) {
+      const exists = conversations.some(c => c.id === dmTarget.id);
+      if (!exists) {
+        // It's a new conversation, add it to the state.
+        // Messages will be fetched when the conversation is opened.
+        const newConvo = { ...dmTarget, messages: [], unreadCount: 0 };
+        setConversations(prev => [newConvo, ...prev]);
+      }
+      
+      // Open the modal for it
+      handleOpenConversation(dmTarget.id);
+
+      // Tell parent we're done
+      onDmTargetHandled();
+    }
+  }, [dmTarget, onDmTargetHandled]);
   
   const handleOpenConversation = (conversationId: string) => {
     const conversation = conversations.find(c => c.id === conversationId);
