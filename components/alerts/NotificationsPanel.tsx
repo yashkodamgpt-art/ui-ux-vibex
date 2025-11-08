@@ -26,7 +26,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
           <button 
             onClick={onMarkAllAsRead}
             disabled={unreadCount === 0}
-            className="text-sm font-semibold text-green-600 hover:text-green-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="text-sm font-semibold text-[--color-accent-primary] hover:text-green-700 dark:hover:text-green-400 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed"
           >
             Mark all as read
           </button>
@@ -46,8 +46,8 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
       ) : (
         <div className="text-center py-20">
           <p className="text-5xl mb-4">🔔</p>
-          <h3 className="text-xl font-semibold text-gray-700">All caught up!</h3>
-          <p className="text-gray-500 mt-2">You'll see updates about sessions and friends here.</p>
+          <h3 className="text-xl font-semibold text-[--color-text-primary]">All caught up!</h3>
+          <p className="text-[--color-text-secondary] mt-2">You'll see updates about sessions and friends here.</p>
         </div>
       )}
     </div>

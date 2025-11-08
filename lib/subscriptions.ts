@@ -103,12 +103,22 @@ export const subscribeToNotifications = (userId: string, callback: (notification
  * @param callback - Function to run when a new message arrives.
  * @returns The Supabase channel for unsubscribing.
  */
-export const subscribeToDirectMessages = (conversationId: string, callback: (payload: RealtimePostgresChangesPayload<DirectMessage>) => void): RealtimeChannel => {
+export const subscribeToDirectMessages = (conversationId: string, callback: (message: DirectMessage) => void): RealtimeChannel => {
     const channel = supabase
         .channel(`direct_messages_${conversationId}`)
         .on('postgres_changes', 
             { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `conversation_id=eq.${conversationId}` },
-            callback
+            (payload) => {
+                const rawMessage = payload.new as any;
+                const mappedMessage: DirectMessage = {
+                    id: rawMessage.id,
+                    conversation_id: rawMessage.conversation_id,
+                    senderId: rawMessage.sender_id,
+                    text: rawMessage.text,
+                    timestamp: rawMessage.timestamp,
+                };
+                callback(mappedMessage);
+            }
         )
         .subscribe();
     return channel;

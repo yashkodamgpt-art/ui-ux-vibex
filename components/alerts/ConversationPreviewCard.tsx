@@ -51,7 +51,7 @@ const ConversationPreviewCard: React.FC<ConversationPreviewCardProps> = ({ conve
     <button 
       onClick={onClick}
       style={animationStyle}
-      className="animate-fade-slide-up w-full text-left p-4 flex items-center space-x-4 rounded-xl bg-white hover:bg-gray-50 hover:shadow-md active:scale-[0.98] transition-transform duration-150"
+      className="animate-fade-slide-up w-full text-left p-4 flex items-center space-x-4 rounded-xl bg-[--color-bg-primary] hover:bg-[--color-bg-secondary] hover:shadow-md active:scale-[0.98] transition-transform duration-150"
     >
       {/* Avatar */}
       <div className="relative flex-shrink-0">
@@ -62,7 +62,7 @@ const ConversationPreviewCard: React.FC<ConversationPreviewCardProps> = ({ conve
           <span className="text-2xl font-bold text-white">{initial}</span>
         </div>
         {isUnread && (
-            <div className="absolute top-0 right-0 flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full bg-green-500 text-white text-xs font-bold ring-2 ring-white animate-pulse-dot" title={`${conversation.unreadCount} unread messages`}>
+            <div className="absolute top-0 right-0 flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full bg-green-500 text-white text-xs font-bold ring-2 ring-[--color-bg-primary] animate-pulse-dot" title={`${conversation.unreadCount} unread messages`}>
                 {conversation.unreadCount}
             </div>
         )}
@@ -71,11 +71,11 @@ const ConversationPreviewCard: React.FC<ConversationPreviewCardProps> = ({ conve
       {/* Info */}
       <div className="flex-grow overflow-hidden">
         <div className="flex items-baseline justify-between">
-          <h3 className="font-bold text-base text-gray-800 truncate">{friend.username}</h3>
-          <p className="text-xs text-gray-400 flex-shrink-0 ml-2">{lastMessage ? formatRelativeTime(lastMessage.timestamp) : ''}</p>
+          <h3 className="font-bold text-base text-[--color-text-primary] truncate">{friend.username}</h3>
+          <p className="text-xs text-[--color-text-secondary]/70 flex-shrink-0 ml-2">{lastMessage ? formatRelativeTime(lastMessage.timestamp) : ''}</p>
         </div>
         <div className="mt-1">
-          <p className={`text-sm line-clamp-2 ${isUnread ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>
+          <p className={`text-sm line-clamp-2 ${isUnread ? 'text-[--color-text-primary] font-semibold' : 'text-[--color-text-secondary]'}`}>
             {lastMessage ? lastMessage.text : 'No messages yet'}
           </p>
         </div>

@@ -672,6 +672,18 @@ export const fetchMessagesForConversation = (conversationId: string) => {
       .select('*')
       .eq('conversation_id', conversationId)
       .order('timestamp', { ascending: true })
+      .then(({ data, error }) => ({
+        data: data
+          ? data.map((d: any) => ({
+              id: d.id,
+              conversation_id: d.conversation_id,
+              senderId: d.sender_id, // Map from sender_id
+              text: d.text,
+              timestamp: d.timestamp,
+            }))
+          : null,
+        error,
+      }))
   );
 };
 

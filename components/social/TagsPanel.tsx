@@ -13,13 +13,13 @@ interface TagsPanelProps {
 }
 
 const SkeletonTagCard: React.FC = () => (
-    <div className="bg-white rounded-xl shadow-md p-3 flex items-center animate-pulse">
-        <div className="h-6 w-6 bg-gray-200 rounded mr-3"></div>
+    <div className="bg-[--color-bg-primary] rounded-xl shadow-md p-3 flex items-center animate-pulse">
+        <div className="h-6 w-6 bg-[--color-bg-tertiary] rounded mr-3"></div>
         <div className="flex-grow space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-4 bg-[--color-bg-tertiary] rounded w-1/2"></div>
+            <div className="h-3 bg-[--color-bg-tertiary] rounded w-1/4"></div>
         </div>
-        <div className="h-5 w-10 bg-gray-200 rounded-full"></div>
+        <div className="h-5 w-10 bg-[--color-bg-tertiary] rounded-full"></div>
     </div>
 );
 
@@ -30,7 +30,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({ isLoading, tags, friends, onViewP
       {/* Create Tag Button */}
       <button 
         onClick={onCreateTag}
-        className="w-full flex items-center justify-center p-3 bg-green-100 text-green-800 font-semibold rounded-lg shadow-sm hover:bg-green-200 transition-colors"
+        className="w-full flex items-center justify-center p-3 bg-[--color-accent-primary]/10 text-[--color-accent-primary] font-semibold rounded-lg shadow-sm hover:bg-[--color-accent-primary]/20 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -59,8 +59,8 @@ const TagsPanel: React.FC<TagsPanelProps> = ({ isLoading, tags, friends, onViewP
       ) : (
         <div className="text-center py-16">
             <p className="text-5xl mb-4">🏷️</p>
-            <h3 className="text-xl font-semibold text-gray-700">Organize your friends with tags!</h3>
-            <p className="text-gray-500 mt-2">
+            <h3 className="text-xl font-semibold text-[--color-text-secondary]">Organize your friends with tags!</h3>
+            <p className="text-[--color-text-secondary] mt-2">
                 Create custom groups like 'Study Buddies' or 'Gaming Crew'.
             </p>
         </div>

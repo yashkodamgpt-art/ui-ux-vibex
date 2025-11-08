@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [currentUser, _setCurrentUser] = useState<User | null>(null);
   const [authView, setAuthView] = useState<AuthView>('login');
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'system');
 
   const userRef = useRef(currentUser);
 
@@ -30,6 +31,22 @@ const App: React.FC = () => {
         _setCurrentUser(userOrUpdater);
     }
   }, []);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    const isDark =
+      theme === 'dark' ||
+      (theme === 'system' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches);
+  
+    root.classList.toggle('dark', isDark);
+  
+    if (theme !== 'system') {
+      localStorage.setItem('theme', theme);
+    } else {
+      localStorage.removeItem('theme');
+    }
+  }, [theme]);
 
   const loadUserProfile = useCallback(async (authUser: SupabaseUser) => {
     if (authUser.aud !== 'authenticated') {
@@ -257,10 +274,10 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-green-50">
+      <div className="flex items-center justify-center min-h-screen bg-[--color-bg-secondary]">
         <div className="text-center p-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Initializing...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[--color-accent-primary] mx-auto mb-4"></div>
+          <p className="text-[--color-text-secondary]">Initializing...</p>
         </div>
       </div>
     );
@@ -274,7 +291,7 @@ const App: React.FC = () => {
     }
   }
 
-  return <MainApp user={currentUser} onLogout={handleLogout} onProfileUpdate={handleProfileUpdate} />;
+  return <MainApp user={currentUser} onLogout={handleLogout} onProfileUpdate={handleProfileUpdate} theme={theme} setTheme={setTheme} />;
 };
 
 export default App;

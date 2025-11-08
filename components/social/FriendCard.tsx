@@ -42,7 +42,7 @@ const FriendCard: React.FC<FriendCardProps> = ({ friend, onViewProfile, onRemove
   return (
     <div 
       onClick={() => onOpenDM(friend.id)}
-      className="bg-white p-3 rounded-xl shadow-md flex items-center space-x-4 cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition-all duration-200 ease-out"
+      className="bg-[--color-bg-primary] p-3 rounded-xl shadow-md flex items-center space-x-4 cursor-pointer hover:bg-[--color-bg-secondary] active:scale-[0.98] transition-all duration-200 ease-out"
       role="button"
       tabIndex={0}
       aria-label={`Message ${friend.username}`}
@@ -57,9 +57,9 @@ const FriendCard: React.FC<FriendCardProps> = ({ friend, onViewProfile, onRemove
 
       {/* Friend Info */}
       <div className="flex-grow">
-        <h3 className="font-bold text-gray-800">{friend.username}</h3>
-        <p className="text-sm text-gray-500">{friend.branch}, Year {friend.year}</p>
-        <div className="flex items-center text-sm text-yellow-600 font-semibold mt-1">
+        <h3 className="font-bold text-[--color-text-primary]">{friend.username}</h3>
+        <p className="text-sm text-[--color-text-secondary]">{friend.branch}, Year {friend.year}</p>
+        <div className="flex items-center text-sm text-yellow-500 font-semibold mt-1">
           <span>🍪</span>
           <span className="ml-1">{friend.cookieScore}</span>
         </div>
@@ -72,7 +72,7 @@ const FriendCard: React.FC<FriendCardProps> = ({ friend, onViewProfile, onRemove
                 e.stopPropagation(); // Prevent onOpenDM from firing
                 setIsMenuOpen(prev => !prev);
             }}
-            className="p-2 text-gray-500 rounded-full hover:bg-gray-200 z-10"
+            className="p-2 text-[--color-text-secondary] rounded-full hover:bg-[--color-bg-tertiary] z-10"
             aria-haspopup="true"
             aria-expanded={isMenuOpen}
             aria-label="More options"
@@ -83,11 +83,11 @@ const FriendCard: React.FC<FriendCardProps> = ({ friend, onViewProfile, onRemove
         </button>
 
         {isMenuOpen && (
-             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 origin-top-right transition-all duration-200 ease-in-out transform opacity-100 scale-100" role="menu" aria-orientation="vertical">
+             <div className="absolute right-0 mt-2 w-48 bg-[--color-bg-primary] rounded-md shadow-lg z-20 origin-top-right transition-all duration-200 ease-in-out transform opacity-100 scale-100" role="menu" aria-orientation="vertical">
                 <div className="py-1" role="none">
-                    <button onClick={(e) => { e.stopPropagation(); onViewProfile(friend); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">View Profile</button>
-                    <button onClick={(e) => { e.stopPropagation(); onAssignToTags(friend); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Add to Tag</button>
-                    <button onClick={(e) => { e.stopPropagation(); onRemoveFriend(friend.id); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">Remove Friend</button>
+                    <button onClick={(e) => { e.stopPropagation(); onViewProfile(friend); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-[--color-text-primary] hover:bg-[--color-bg-secondary]" role="menuitem">View Profile</button>
+                    <button onClick={(e) => { e.stopPropagation(); onAssignToTags(friend); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-[--color-text-primary] hover:bg-[--color-bg-secondary]" role="menuitem">Add to Tag</button>
+                    <button onClick={(e) => { e.stopPropagation(); onRemoveFriend(friend.id); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-500/10" role="menuitem">Remove Friend</button>
                 </div>
             </div>
         )}

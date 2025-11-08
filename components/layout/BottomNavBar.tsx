@@ -42,19 +42,19 @@ interface BottomNavBarProps {
 
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabClick }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 flex justify-around items-center z-50">
+    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-[--color-bg-primary] border-t border-[--color-border] flex justify-around items-center z-50">
       {navItems.map(item => {
         const isActive = activeTab === item.id;
-        const color = isActive ? 'text-green-600' : 'text-gray-400';
+        const color = isActive ? 'text-[--color-accent-primary]' : 'text-[--color-text-secondary]/70';
         return (
           <button
             key={item.id}
             onClick={() => onTabClick(item.id as AppTab)}
-            className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 nav-item-tap ${color} hover:text-green-500`}
+            className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 nav-item-tap ${color} hover:text-[--color-accent-primary]`}
             aria-label={item.id}
           >
             <item.icon className="h-6 w-6" />
-            <span className={`text-xs font-medium ${isActive ? 'text-green-600' : 'text-gray-500'}`}>{item.id}</span>
+            <span className={`text-xs font-medium ${isActive ? 'text-[--color-accent-primary]' : 'text-[--color-text-secondary]'}`}>{item.id}</span>
           </button>
         );
       })}

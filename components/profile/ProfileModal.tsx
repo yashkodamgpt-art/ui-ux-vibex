@@ -27,29 +27,29 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, userToView
                 aria-modal="true"
                 aria-labelledby="profile-title"
             >
-                <div className={`w-full max-w-md bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 sm:p-8 space-y-4 text-center modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+                <div className={`w-full max-w-md bg-[--color-bg-primary] sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 sm:p-8 space-y-4 text-center modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
                     <div className="flex justify-center">
-                         <div className="h-20 w-20 bg-green-200 rounded-full flex items-center justify-center">
-                             <span className="text-3xl font-bold text-green-700">{userToView.profile.username.charAt(0).toUpperCase()}</span>
+                         <div className="h-20 w-20 bg-[--color-accent-primary]/20 rounded-full flex items-center justify-center">
+                             <span className="text-3xl font-bold text-[--color-accent-primary]">{userToView.profile.username.charAt(0).toUpperCase()}</span>
                          </div>
                     </div>
 
-                    <h2 id="profile-title" className="text-2xl font-bold text-gray-800">{userToView.profile.username}</h2>
+                    <h2 id="profile-title" className="text-2xl font-bold text-[--color-text-primary]">{userToView.profile.username}</h2>
                     
-                    <div className="py-4 border-t border-b border-gray-200">
+                    <div className="py-4 border-t border-b border-[--color-border]">
                         {canViewProfile ? (
-                            <p className="text-gray-600 italic">
+                            <p className="text-[--color-text-secondary] italic">
                                 {userToView.profile.bio || 'This user hasn\'t set a bio yet.'}
                             </p>
                         ) : (
-                            <p className="text-gray-500 bg-gray-100 p-3 rounded-lg">
+                            <p className="text-[--color-text-secondary] bg-[--color-bg-tertiary] p-3 rounded-lg">
                                 This user's profile is private.
                             </p>
                         )}
                     </div>
 
                     <div className="flex justify-center">
-                        <button type="button" onClick={onClose} className="px-8 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Close</button>
+                        <button type="button" onClick={onClose} className="px-8 py-2 bg-[--color-bg-tertiary] text-[--color-text-primary] font-semibold rounded-lg hover:bg-[--color-border] focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Close</button>
                     </div>
                 </div>
             </div>

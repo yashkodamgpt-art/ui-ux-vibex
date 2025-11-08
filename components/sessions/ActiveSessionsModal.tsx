@@ -9,10 +9,10 @@ interface ActiveSessionsModalProps {
 }
 
 const typeStyles: Record<Session['sessionType'], { bg: string; text: string }> = {
-  vibe: { bg: 'bg-purple-100', text: 'text-purple-800' },
-  seek: { bg: 'bg-blue-100', text: 'text-blue-800' },
-  cookie: { bg: 'bg-orange-100', text: 'text-orange-800' },
-  borrow: { bg: 'bg-green-100', text: 'text-green-800' },
+  vibe: { bg: 'bg-purple-100 dark:bg-purple-500/20', text: 'text-purple-800 dark:text-purple-300' },
+  seek: { bg: 'bg-blue-100 dark:bg-blue-500/20', text: 'text-blue-800 dark:text-blue-300' },
+  cookie: { bg: 'bg-orange-100 dark:bg-orange-500/20', text: 'text-orange-800 dark:text-orange-300' },
+  borrow: { bg: 'bg-green-100 dark:bg-green-500/20', text: 'text-green-800 dark:text-green-300' },
 };
 
 const ActiveSessionsModal: React.FC<ActiveSessionsModalProps> = ({ isOpen, onClose, sessions, onSessionSelect }) => {
@@ -31,8 +31,8 @@ const ActiveSessionsModal: React.FC<ActiveSessionsModalProps> = ({ isOpen, onClo
         aria-modal="true"
         aria-labelledby="active-sessions-title"
       >
-        <div className={`w-full max-w-md bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 space-y-4 modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-          <h2 id="active-sessions-title" className="text-xl font-bold text-gray-800">Your Active Sessions</h2>
+        <div className={`w-full max-w-md bg-[--color-bg-primary] sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 space-y-4 modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+          <h2 id="active-sessions-title" className="text-xl font-bold text-[--color-text-primary]">Your Active Sessions</h2>
           
           <div className="space-y-3 max-h-80 overflow-y-auto">
             {sessions.map(session => {
@@ -41,11 +41,11 @@ const ActiveSessionsModal: React.FC<ActiveSessionsModalProps> = ({ isOpen, onClo
                 <button
                   key={session.id}
                   onClick={() => onSessionSelect(session)}
-                  className="w-full flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 text-left"
+                  className="w-full flex items-center p-3 bg-[--color-bg-secondary] rounded-lg hover:bg-[--color-bg-tertiary] text-left"
                 >
                   <span className="text-2xl mr-3">{session.emoji}</span>
                   <div className="flex-grow">
-                    <p className="font-semibold text-gray-800">{session.title}</p>
+                    <p className="font-semibold text-[--color-text-primary]">{session.title}</p>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles.bg} ${styles.text}`}>
                       {session.sessionType}
                     </span>
@@ -59,7 +59,7 @@ const ActiveSessionsModal: React.FC<ActiveSessionsModalProps> = ({ isOpen, onClo
             <button 
               type="button" 
               onClick={onClose} 
-              className="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
+              className="px-6 py-2 bg-[--color-bg-tertiary] text-[--color-text-primary] font-semibold rounded-lg hover:bg-[--color-border]"
             >
               Close
             </button>

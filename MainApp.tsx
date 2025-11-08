@@ -34,9 +34,11 @@ interface MainAppProps {
   user: User;
   onLogout: () => void;
   onProfileUpdate: (profile: User['profile']) => void;
+  theme: string;
+  setTheme: (theme: string) => void;
 }
 
-const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) => {
+const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, theme, setTheme }) => {
   const [activeTab, setActiveTab] = useState<AppTab>('Home');
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -390,26 +392,26 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate }) =>
 
   if (appIsLoading) {
     return (
-        <div className="flex items-center justify-center min-h-screen bg-green-50">
+        <div className="flex items-center justify-center min-h-screen bg-[--color-bg-secondary]">
           <div className="text-center p-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading your vibes...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[--color-accent-primary] mx-auto mb-4"></div>
+            <p className="text-[--color-text-secondary]">Loading your vibes...</p>
           </div>
         </div>
       );
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-green-50 flex flex-col">
+    <div className="h-screen w-screen overflow-hidden bg-[--color-bg-secondary] flex flex-col">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       {activeTab === 'Home' ? ( <> <HomeHeader /> <FilterChipBar filters={filterChips} activeFilter={activeFilter} onSelectFilter={handleFilterSelect} /> </> ) : ( <PageHeader username={user.profile.username} onLogout={onLogout} /> )}
       
       <main className="flex-grow relative overflow-hidden">
-        {error && (<div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg max-w-md w-11/12" role="alert"><span className="block sm:inline">{error}</span></div>)}
+        {error && (<div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] bg-red-500/10 dark:bg-red-500/20 border border-red-500/30 text-[--color-error] px-4 py-3 rounded shadow-lg max-w-md w-11/12" role="alert"><span className="block sm:inline">{error}</span></div>)}
           <div className={`h-full w-full ${activeTab === 'Home' ? 'block' : 'hidden'}`}><MapView ref={mapViewRef} isVisible={activeTab === 'Home'} isCreateMode={isPlacementMode} userLocation={userLocation} onSetUserLocation={setUserLocation} onMapClick={handleMapPlacement} events={filteredSessions} user={user} activeVibe={activeVibe} onCloseEvent={handleCloseEvent} onExtendEvent={handleExtendEvent} onJoinVibe={handleJoinVibe} onViewChat={onViewChat} activeFilter={activeFilter} campusZones={campusZones} friends={friends}/> <div className="fixed bottom-20 right-6 z-[1000] flex flex-col items-center space-y-4"> <MyLocationButton onClick={handleRecenterMap} disabled={!userLocation} /> <CreateSessionMenu isOpen={isCreateMenuOpen} onSelectType={handleSelectSessionType} /> <CreateEventButton onClick={handleCreateButtonClick} isActive={isCreateMenuOpen || isPlacementMode} /> </div> </div>
           <div className={`h-full overflow-y-auto pb-16 ${activeTab === 'Social' ? 'block' : 'hidden'}`}><SocialPage user={user} friends={friends} tags={tags} friendRequests={friendRequests} onSaveTag={handleSaveTag} onDeleteTag={handleDeleteTag} onRemoveFriend={handleRemoveFriend} onSaveFriendTags={handleSaveFriendTags} onSendRequest={handleSendRequest} onAcceptRequest={handleAcceptRequest} onRejectRequest={handleRejectRequest} onViewFriendProfile={handleViewFriendProfile} setConfirmation={setConfirmation} onOpenCreateTagModal={handleOpenCreateTagModal} onOpenEditTagModal={handleOpenEditTagModal} onOpenAssignTagModal={handleOpenAssignTagModal} onOpenDM={handleOpenDM} /></div>
           <div className={`h-full overflow-y-auto pb-16 ${activeTab === 'Alerts' ? 'block' : 'hidden'}`}><AlertsPage user={user} friends={friends} notifications={notifications} onMarkAsRead={handleMarkAsRead} onMarkAllAsRead={handleMarkAllAsRead} onDeleteNotification={handleDeleteNotification} onNotificationAction={handleNotificationAction} dmTarget={dmTarget} onDmTargetHandled={() => setDmTarget(null)} /></div>
-          <div className={`h-full overflow-y-auto pb-24 ${activeTab === 'Profile' ? 'block' : 'hidden'}`}><ProfilePage user={user} onProfileUpdate={onProfileUpdate} /></div>
+          <div className={`h-full overflow-y-auto pb-24 ${activeTab === 'Profile' ? 'block' : 'hidden'}`}><ProfilePage user={user} onProfileUpdate={onProfileUpdate} theme={theme} setTheme={setTheme} /></div>
         
         <CreateEventModal isOpen={isCreateModalOpen} onClose={handleCancelCreate} onSubmit={handleCreateEvent} sessionType={selectedSessionType} tags={tags} friends={friends} user={user} />
         {activeVibe && ( <VibeChatPanel isOpen={isChatVisible} onClose={() => setIsChatVisible(false)} vibe={activeVibe} messages={chatMessages} user={user} onSendMessage={handleSendMessage} onLeaveVibe={handleLeaveVibe} onViewProfile={handleOpenProfile} onTransferOwnership={handleTransferOwnership} setConfirmation={setConfirmation} /> )}

@@ -51,29 +51,29 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification, onMar
     <div
       onClick={onMarkAsRead}
       className={`p-3 flex items-start space-x-3 rounded-xl transition-colors cursor-pointer ${
-        isRead ? 'bg-white hover:bg-gray-50' : 'bg-blue-50 hover:bg-blue-100'
+        isRead ? 'bg-[--color-bg-primary] hover:bg-[--color-bg-secondary]' : 'bg-blue-500/10 hover:bg-blue-500/20'
       }`}
     >
-      <div className="flex-shrink-0 h-10 w-10 bg-white rounded-full flex items-center justify-center text-xl shadow-sm">
+      <div className="flex-shrink-0 h-10 w-10 bg-[--color-bg-primary] rounded-full flex items-center justify-center text-xl shadow-sm">
         {content.icon}
       </div>
 
       <div className="flex-grow overflow-hidden">
-        <p className="text-sm text-gray-700">
+        <p className="text-sm text-[--color-text-primary]">
           {content.text} {content.message}
         </p>
-        <p className="text-xs text-gray-500 mt-1">{formatRelativeTime(timestamp)}</p>
+        <p className="text-xs text-[--color-text-secondary] mt-1">{formatRelativeTime(timestamp)}</p>
         
         {content.actions && (
           <div className="mt-2 flex items-center space-x-2">
             {content.actions.includes('accept') && (
-              <button onClick={(e) => { e.stopPropagation(); onAction('accept'); }} className="px-3 py-1 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg">Accept</button>
+              <button onClick={(e) => { e.stopPropagation(); onAction('accept'); }} className="px-3 py-1 text-xs font-bold text-white bg-green-600 hover:bg-green-700 dark:hover:bg-green-500 rounded-lg">Accept</button>
             )}
             {content.actions.includes('reject') && (
-               <button onClick={(e) => { e.stopPropagation(); onAction('reject'); }} className="px-3 py-1 text-xs font-bold text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg">Reject</button>
+               <button onClick={(e) => { e.stopPropagation(); onAction('reject'); }} className="px-3 py-1 text-xs font-bold text-[--color-text-primary] bg-[--color-bg-tertiary] hover:bg-[--color-border] rounded-lg">Reject</button>
             )}
             {content.actions.includes('view') && (
-               <button onClick={(e) => { e.stopPropagation(); onAction('view'); }} className="px-3 py-1 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg">View</button>
+               <button onClick={(e) => { e.stopPropagation(); onAction('view'); }} className="px-3 py-1 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 dark:hover:bg-purple-500 rounded-lg">View</button>
             )}
           </div>
         )}

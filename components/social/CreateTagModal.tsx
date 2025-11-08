@@ -26,9 +26,9 @@ const colorClasses: { [key: string]: string } = {
 };
 
 const getCharLimitColors = (length: number, limit: number) => {
-    if (length >= limit) return { text: 'text-red-600', border: 'border-red-500 ring-red-500' };
+    if (length >= limit) return { text: 'text-[--color-error]', border: 'border-red-500 ring-red-500' };
     if (length >= limit - 5) return { text: 'text-orange-500', border: 'border-orange-400 ring-orange-400' };
-    return { text: 'text-gray-500', border: 'border-gray-300' };
+    return { text: 'text-[--color-text-secondary]', border: 'border-[--color-border]' };
 };
 
 const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave, existingTag }) => {
@@ -88,14 +88,14 @@ const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave
         aria-modal="true"
         aria-labelledby="create-tag-title"
       >
-        <form onSubmit={handleSubmit} className={`w-full max-w-md bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 sm:p-8 space-y-6 modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-          <h2 id="create-tag-title" className="text-2xl font-bold text-gray-800">
+        <form onSubmit={handleSubmit} className={`w-full max-w-md bg-[--color-bg-primary] sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 sm:p-8 space-y-6 modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+          <h2 id="create-tag-title" className="text-2xl font-bold text-[--color-text-primary]">
             {existingTag ? 'Edit Tag' : 'Create New Tag'}
           </h2>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-[--color-error] text-sm">{error}</p>}
           
           <div>
-              <label htmlFor="tag-name" className="text-sm font-medium text-gray-700">Tag Name</label>
+              <label htmlFor="tag-name" className="text-sm font-medium text-[--color-text-secondary]">Tag Name</label>
               <input 
                 ref={nameInputRef}
                 id="tag-name" 
@@ -104,7 +104,7 @@ const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave
                 onChange={e => setName(e.target.value)} 
                 maxLength={MAX_CHARS}
                 required 
-                className={`mt-1 block w-full px-4 py-2 bg-gray-50 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 ${error ? 'border-red-500' : nameColors.border}`} 
+                className={`mt-1 block w-full px-4 py-2 bg-[--color-bg-tertiary] border rounded-lg text-[--color-text-primary] focus:outline-none focus:ring-2 focus:ring-[--color-accent-primary] ${error ? 'border-red-500' : nameColors.border}`} 
                 placeholder="e.g., Study Buddies"
                 style={{fontSize: '16px'}}
               />
@@ -112,28 +112,28 @@ const CreateTagModal: React.FC<CreateTagModalProps> = ({ isOpen, onClose, onSave
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700">Color</label>
+            <label className="text-sm font-medium text-[--color-text-secondary]">Color</label>
             <div className="mt-2 flex flex-wrap gap-3">
               {colors.map(color => (
-                <button type="button" key={color} onClick={() => setSelectedColor(color)} className={`h-8 w-8 rounded-full transition-transform hover:scale-110 ${colorClasses[color]} ${selectedColor === color ? 'ring-2 ring-offset-2 ring-green-500' : ''}`} aria-label={`Select color ${color}`}></button>
+                <button type="button" key={color} onClick={() => setSelectedColor(color)} className={`h-8 w-8 rounded-full transition-transform hover:scale-110 ${colorClasses[color]} ${selectedColor === color ? `ring-2 ring-offset-2 ring-[--color-accent-primary] ring-offset-[--color-bg-primary]` : ''}`} aria-label={`Select color ${color}`}></button>
               ))}
             </div>
           </div>
           
           <div>
-            <label className="text-sm font-medium text-gray-700">Emoji</label>
+            <label className="text-sm font-medium text-[--color-text-secondary]">Emoji</label>
             <div className="mt-2 flex flex-wrap gap-2">
               {emojis.map(emoji => (
-                <button type="button" key={emoji} onClick={() => setSelectedEmoji(emoji)} className={`w-12 h-12 text-2xl rounded-lg flex items-center justify-center transition-all ${selectedEmoji === emoji ? 'border-2 border-green-500 bg-green-100' : 'bg-gray-100 hover:bg-gray-200'}`}>
+                <button type="button" key={emoji} onClick={() => setSelectedEmoji(emoji)} className={`w-12 h-12 text-2xl rounded-lg flex items-center justify-center transition-all ${selectedEmoji === emoji ? 'border-2 border-[--color-accent-primary] bg-green-100/50 dark:bg-green-500/20' : 'bg-[--color-bg-tertiary] hover:bg-[--color-border]'}`}>
                     {emoji}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
-            <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Cancel</button>
-            <button type="submit" className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">Save Tag</button>
+          <div className="flex justify-end space-x-4 pt-4 border-t border-[--color-border]">
+            <button type="button" onClick={onClose} className="px-6 py-2 bg-[--color-bg-tertiary] text-[--color-text-primary] font-semibold rounded-lg hover:bg-[--color-border] focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Cancel</button>
+            <button type="submit" className="px-6 py-2 bg-[--color-accent-primary] text-[--color-text-on-accent] font-semibold rounded-lg shadow-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-[--color-accent-primary] focus:ring-offset-2">Save Tag</button>
           </div>
         </form>
       </div>

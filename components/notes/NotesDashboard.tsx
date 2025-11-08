@@ -47,9 +47,9 @@ const NotesDashboard: React.FC<NotesDashboardProps> = ({ user }) => {
       {/* <AddNoteForm onAddNote={handleAddNote} /> */}
       
       <div className="mt-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Past Sessions</h2>
+        <h2 className="text-2xl font-bold text-[--color-text-primary] mb-6">Your Past Sessions</h2>
         {loading ? (
-            <div className="text-center py-16"><p>Loading your history...</p></div>
+            <div className="text-center py-16"><p className="text-[--color-text-secondary]">Loading your history...</p></div>
         ) : notes.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {notes.map((note) => (
@@ -58,9 +58,9 @@ const NotesDashboard: React.FC<NotesDashboardProps> = ({ user }) => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-16 bg-white rounded-xl shadow-md">
-            <h3 className="text-xl font-semibold text-gray-700">No vibes yet!</h3>
-            <p className="text-gray-500 mt-2">Join or create a session to see your history here.</p>
+          <div className="text-center py-16 bg-[--color-bg-primary] rounded-xl shadow-md">
+            <h3 className="text-xl font-semibold text-[--color-text-secondary]">No vibes yet!</h3>
+            <p className="text-[--color-text-secondary] mt-2">Join or create a session to see your history here.</p>
           </div>
         )}
       </div>

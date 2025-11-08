@@ -30,9 +30,9 @@ const sessionConfigs = {
 };
 
 const getCharLimitColors = (length: number, limit: number) => {
-    if (length >= limit) return { text: 'text-red-600', border: 'border-red-500 ring-red-500' };
+    if (length >= limit) return { text: 'text-[--color-error]', border: 'border-red-500 ring-red-500' };
     if (length >= limit - 20) return { text: 'text-orange-500', border: 'border-orange-400 ring-orange-400' };
-    return { text: 'text-gray-500', border: 'border-gray-300' };
+    return { text: 'text-[--color-text-secondary]', border: 'border-[--color-border]' };
 };
 
 const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, onSubmit, sessionType, tags, friends, user }) => {
@@ -143,13 +143,15 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
 
     if (!isOpen || !sessionType) return null;
 
-    const config = sessionConfigs[sessionType];
+    // FIX: Define currentEmojiList based on the sessionType prop.
     const currentEmojiList = emojiLists[sessionType];
+
+    const config = sessionConfigs[sessionType];
     const colors = {
       purple: { ring: 'focus:ring-purple-500', bg: 'bg-purple-600', hoverBg: 'hover:bg-purple-700', text: 'text-purple-600', border: 'border-purple-500' },
       blue: { ring: 'focus:ring-blue-500', bg: 'bg-blue-600', hoverBg: 'hover:bg-blue-700', text: 'text-blue-600', border: 'border-blue-500' },
       orange: { ring: 'focus:ring-orange-500', bg: 'bg-orange-600', hoverBg: 'hover:bg-orange-700', text: 'text-orange-600', border: 'border-orange-500' },
-      green: { ring: 'focus:ring-green-600', bg: 'bg-green-600', hoverBg: 'hover:bg-green-700', text: 'text-green-600', border: 'border-green-500' },
+      green: { ring: 'focus:ring-green-600', bg: 'bg-green-600', hoverBg: 'hover:bg-green-700', text: 'text-green-600', border: 'border-green-600' },
     }[config.color];
 
     const titleColors = getCharLimitColors(title.length, TITLE_MAX_CHARS);
@@ -160,72 +162,72 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
         <>
             <div onClick={onClose} className="fixed inset-0 bg-black/50 z-[2000] transition-opacity duration-300 opacity-100" aria-hidden="true" />
             <div className={`fixed inset-0 z-[2010] flex items-end sm:items-center justify-center p-0 sm:p-4 ${isOpen ? '' : 'pointer-events-none'}`} role="dialog" aria-modal="true" aria-labelledby="create-event-title">
-                <form onSubmit={handleSubmit} className={`w-full max-w-lg bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 sm:p-8 space-y-4 max-h-[90vh] flex flex-col modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-                    <h2 id="create-event-title" className="text-2xl font-bold text-gray-800">Create a New {config.title}</h2>
-                    {error && <p className="text-red-500 text-sm">{error}</p>}
+                <form onSubmit={handleSubmit} className={`w-full max-w-lg bg-[--color-bg-primary] sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 sm:p-8 space-y-4 max-h-[90vh] flex flex-col modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+                    <h2 id="create-event-title" className="text-2xl font-bold text-[--color-text-primary]">{config.title}</h2>
+                    {error && <p className="text-[--color-error] text-sm">{error}</p>}
                     
                     <div className="space-y-4 overflow-y-auto pr-2 flex-grow">
                         <div>
-                            <label className="text-sm font-medium text-gray-700">Choose an Emoji</label>
+                            <label className="text-sm font-medium text-[--color-text-secondary]">Choose an Emoji</label>
                             <div className="mt-2 space-y-3">
-                                {recentlyUsedEmojis.length > 0 && (<div><h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Recent</h3><div className="horizontal-snap flex gap-2 pb-2">{recentlyUsedEmojis.map(emoji => (<button type="button" key={`recent-${emoji}`} onClick={() => handleEmojiSelect(emoji)} className={`flex-shrink-0 w-12 h-12 text-2xl rounded-lg flex items-center justify-center transition-all ${selectedEmoji === emoji ? `border-2 ${colors.border} bg-purple-100` : 'bg-gray-100 hover:bg-gray-200'}`}>{emoji}</button>))}</div></div>)}
-                                <div><h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{config.title} Emojis</h3><div className="horizontal-snap flex gap-2 pb-2">{currentEmojiList.map(emoji => (<button type="button" key={emoji} onClick={() => handleEmojiSelect(emoji)} className={`flex-shrink-0 w-12 h-12 text-2xl rounded-lg flex items-center justify-center transition-all ${selectedEmoji === emoji ? `border-2 ${colors.border} bg-purple-100` : 'bg-gray-100 hover:bg-gray-200'}`}>{emoji}</button>))}</div></div>
+                                {recentlyUsedEmojis.length > 0 && (<div><h3 className="text-xs font-semibold text-[--color-text-secondary] uppercase tracking-wider mb-1">Recent</h3><div className="horizontal-snap flex gap-2 pb-2">{recentlyUsedEmojis.map(emoji => (<button type="button" key={`recent-${emoji}`} onClick={() => handleEmojiSelect(emoji)} className={`flex-shrink-0 w-12 h-12 text-2xl rounded-lg flex items-center justify-center transition-all ${selectedEmoji === emoji ? `border-2 ${colors.border} bg-purple-100 dark:bg-purple-500/20` : 'bg-[--color-bg-tertiary] hover:bg-[--color-border]'}`}>{emoji}</button>))}</div></div>)}
+                                <div><h3 className="text-xs font-semibold text-[--color-text-secondary] uppercase tracking-wider mb-1">{config.title} Emojis</h3><div className="horizontal-snap flex gap-2 pb-2">{currentEmojiList.map(emoji => (<button type="button" key={emoji} onClick={() => handleEmojiSelect(emoji)} className={`flex-shrink-0 w-12 h-12 text-2xl rounded-lg flex items-center justify-center transition-all ${selectedEmoji === emoji ? `border-2 ${colors.border} bg-purple-100 dark:bg-purple-500/20` : 'bg-[--color-bg-tertiary] hover:bg-[--color-border]'}`}>{emoji}</button>))}</div></div>
                             </div>
                         </div>
                         
                         <div>
-                            <label htmlFor="title" className="text-sm font-medium text-gray-700">{sessionType === 'borrow' ? 'Item Name' : 'Title'}</label>
+                            <label htmlFor="title" className="text-sm font-medium text-[--color-text-secondary]">{sessionType === 'borrow' ? 'Item Name' : 'Title'}</label>
                             <div className="flex items-center gap-3 mt-1">
                                 <span className="text-3xl">{selectedEmoji}</span>
-                                <input ref={titleInputRef} id="title" type="text" value={title} onChange={e => setTitle(e.target.value)} maxLength={TITLE_MAX_CHARS} required className={`block w-full px-4 py-2 bg-gray-50 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${colors.ring} ${errorField === 'title' ? 'border-red-500' : titleColors.border}`} placeholder={config.placeholder} style={{fontSize: '16px'}} />
+                                <input ref={titleInputRef} id="title" type="text" value={title} onChange={e => setTitle(e.target.value)} maxLength={TITLE_MAX_CHARS} required className={`block w-full px-4 py-2 bg-[--color-bg-tertiary] border rounded-lg text-[--color-text-primary] focus:outline-none focus:ring-2 ${colors.ring} ${errorField === 'title' ? 'border-red-500' : titleColors.border}`} placeholder={config.placeholder} style={{fontSize: '16px'}} />
                             </div>
                             <p className={`text-right text-xs mt-1 ${titleColors.text}`}>{title.length}/{TITLE_MAX_CHARS}</p>
                         </div>
 
                         <div>
-                            <label htmlFor="description" className="text-sm font-medium text-gray-700">{sessionType === 'borrow' ? 'Reason (Optional)' : 'Description (Optional)'}</label>
-                            <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} maxLength={DESC_MAX_CHARS} className={`mt-1 block w-full px-4 py-2 bg-gray-50 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${colors.ring} ${errorField === 'description' ? 'border-red-500' : descColors.border}`} rows={2} placeholder="Add a few details..." style={{fontSize: '16px'}}></textarea>
+                            <label htmlFor="description" className="text-sm font-medium text-[--color-text-secondary]">{sessionType === 'borrow' ? 'Reason (Optional)' : 'Description (Optional)'}</label>
+                            <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} maxLength={DESC_MAX_CHARS} className={`mt-1 block w-full px-4 py-2 bg-[--color-bg-tertiary] border rounded-lg text-[--color-text-primary] focus:outline-none focus:ring-2 ${colors.ring} ${errorField === 'description' ? 'border-red-500' : descColors.border}`} rows={2} placeholder="Add a few details..." style={{fontSize: '16px'}}></textarea>
                             <p className={`text-right text-xs mt-1 ${descColors.text}`}>{description.length}/{DESC_MAX_CHARS}</p>
                         </div>
                         
                         {sessionType === 'vibe' && (
-                          <div className="p-3 bg-gray-50 rounded-lg space-y-3">
+                          <div className="p-3 bg-[--color-bg-secondary] rounded-lg space-y-3">
                             <div>
-                              <label className="text-sm font-medium text-gray-700 mb-2 block">Visibility</label>
-                              <div className="flex rounded-lg bg-gray-200 p-1">
-                                <button type="button" onClick={() => setPrivacy('public')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-colors ${privacy === 'public' ? 'bg-white text-gray-800 shadow-sm' : 'bg-transparent text-gray-600'}`}>Public</button>
-                                <button type="button" onClick={() => setPrivacy('private')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-colors ${privacy === 'private' ? 'bg-white text-gray-800 shadow-sm' : 'bg-transparent text-gray-600'}`}>Private</button>
+                              <label className="text-sm font-medium text-[--color-text-secondary] mb-2 block">Visibility</label>
+                              <div className="flex rounded-lg bg-[--color-bg-tertiary] p-1">
+                                <button type="button" onClick={() => setPrivacy('public')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-colors ${privacy === 'public' ? 'bg-[--color-bg-primary] text-[--color-text-primary] shadow-sm' : 'bg-transparent text-[--color-text-secondary]'}`}>Public</button>
+                                <button type="button" onClick={() => setPrivacy('private')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-colors ${privacy === 'private' ? 'bg-[--color-bg-primary] text-[--color-text-primary] shadow-sm' : 'bg-transparent text-[--color-text-secondary]'}`}>Private</button>
                               </div>
                               {privacy === 'private' && (
                                 <div className="mt-3">
-                                  <label className="text-sm font-medium text-gray-700">Visible to Tags</label>
-                                  <div className="mt-2 space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-white">{tags.map(tag => (
-                                    <label key={tag.id} className="flex items-center p-2 rounded-lg hover:bg-gray-100 cursor-pointer">
-                                      <input type="checkbox" checked={selectedTagIds.includes(tag.id)} onChange={() => handleToggleTag(tag.id)} className="h-4 w-4 rounded text-green-600 border-gray-300 focus:ring-green-500" />
-                                      <span className="ml-3 flex items-center text-sm"><span className="mr-2">{tag.emoji}</span><span className="font-semibold">{tag.name}</span><span className="text-gray-500 ml-1">({tag.memberIds.length})</span></span>
+                                  <label className="text-sm font-medium text-[--color-text-secondary]">Visible to Tags</label>
+                                  <div className="mt-2 space-y-2 max-h-32 overflow-y-auto border border-[--color-border] rounded-lg p-2 bg-[--color-bg-primary]">{tags.map(tag => (
+                                    <label key={tag.id} className="flex items-center p-2 rounded-lg hover:bg-[--color-bg-secondary] cursor-pointer">
+                                      <input type="checkbox" checked={selectedTagIds.includes(tag.id)} onChange={() => handleToggleTag(tag.id)} className="h-4 w-4 rounded text-green-600 border-[--color-border] focus:ring-[--color-accent-primary]" />
+                                      <span className="ml-3 flex items-center text-sm"><span className="mr-2">{tag.emoji}</span><span className="font-semibold">{tag.name}</span><span className="text-[--color-text-secondary] ml-1">({tag.memberIds.length})</span></span>
                                     </label>
                                   ))}</div>
-                                  <p className="text-xs text-gray-600 mt-1 text-center">Visible to {uniqueFriendsCount} friends.</p>
+                                  <p className="text-xs text-[--color-text-secondary] mt-1 text-center">Visible to {uniqueFriendsCount} friends.</p>
                                 </div>
                               )}
                             </div>
                           </div>
                         )}
 
-                        {sessionType === 'seek' && ( <div className="p-3 bg-gray-50 rounded-lg"> <label htmlFor="helpCategory" className="text-sm font-medium text-gray-700 mb-2 block">Help Category</label> <select id="helpCategory" value={helpCategory} onChange={e => setHelpCategory(e.target.value as any)} className={`block w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${colors.ring}`} style={{fontSize: '16px'}}> <option>General</option><option>Academic</option><option>Project</option><option>Tech</option> </select> </div> )}
-                        {sessionType === 'cookie' && ( <div className="p-3 bg-gray-50 rounded-lg space-y-3"> <div><label htmlFor="skillTag" className="text-sm font-medium text-gray-700 mb-2 block">Skill Tag</label><select id="skillTag" value={skillTag} onChange={e => setSkillTag(e.target.value)} className={`block w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${colors.ring}`} style={{fontSize: '16px'}}>{user.profile.expertise.length > 0 ? user.profile.expertise.map(skill => <option key={skill}>{skill}</option>) : <option disabled>Add skills in your profile!</option>}</select></div> <div><label htmlFor="expectedOutcome" className="text-sm font-medium text-gray-700">Expected Outcome (Optional)</label><input id="expectedOutcome" type="text" value={expectedOutcome} onChange={e => setExpectedOutcome(e.target.value)} className={`mt-1 block w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${colors.ring}`} placeholder="e.g., You'll be able to build a simple web page" style={{fontSize: '16px'}}/></div> </div> )}
+                        {sessionType === 'seek' && ( <div className="p-3 bg-[--color-bg-secondary] rounded-lg"> <label htmlFor="helpCategory" className="text-sm font-medium text-[--color-text-secondary] mb-2 block">Help Category</label> <select id="helpCategory" value={helpCategory} onChange={e => setHelpCategory(e.target.value as any)} className={`block w-full px-4 py-2 bg-[--color-bg-primary] border border-[--color-border] rounded-lg text-[--color-text-primary] focus:outline-none focus:ring-2 ${colors.ring}`} style={{fontSize: '16px'}}> <option>General</option><option>Academic</option><option>Project</option><option>Tech</option> </select> </div> )}
+                        {sessionType === 'cookie' && ( <div className="p-3 bg-[--color-bg-secondary] rounded-lg space-y-3"> <div><label htmlFor="skillTag" className="text-sm font-medium text-[--color-text-secondary] mb-2 block">Skill Tag</label><select id="skillTag" value={skillTag} onChange={e => setSkillTag(e.target.value)} className={`block w-full px-4 py-2 bg-[--color-bg-primary] border border-[--color-border] rounded-lg text-[--color-text-primary] focus:outline-none focus:ring-2 ${colors.ring}`} style={{fontSize: '16px'}}>{user.profile.expertise.length > 0 ? user.profile.expertise.map(skill => <option key={skill}>{skill}</option>) : <option disabled>Add skills in your profile!</option>}</select></div> <div><label htmlFor="expectedOutcome" className="text-sm font-medium text-[--color-text-secondary]">Expected Outcome (Optional)</label><input id="expectedOutcome" type="text" value={expectedOutcome} onChange={e => setExpectedOutcome(e.target.value)} className={`mt-1 block w-full px-4 py-2 bg-[--color-bg-primary] border border-[--color-border] rounded-lg text-[--color-text-primary] focus:outline-none focus:ring-2 ${colors.ring}`} placeholder="e.g., You'll be able to build a simple web page" style={{fontSize: '16px'}}/></div> </div> )}
 
-                        {sessionType === 'borrow' && ( <div className="p-3 bg-gray-50 rounded-lg space-y-3"> <div> <label htmlFor="returnTime" className="text-sm font-medium text-gray-700">Return By</label> <input id="returnTime" type="datetime-local" value={returnTime} onChange={e => setReturnTime(e.target.value)} className={`mt-1 block w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${colors.ring}`} style={{fontSize: '16px'}}/> </div> <div> <label htmlFor="urgency" className="text-sm font-medium text-gray-700">Urgency</label> <select id="urgency" value={urgency} onChange={e => setUrgency(e.target.value as any)} className={`mt-1 block w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 ${colors.ring}`} style={{fontSize: '16px'}}> <option>Low</option> <option>Medium</option> <option>High</option> </select> </div> </div> )}
+                        {sessionType === 'borrow' && ( <div className="p-3 bg-[--color-bg-secondary] rounded-lg space-y-3"> <div> <label htmlFor="returnTime" className="text-sm font-medium text-[--color-text-secondary]">Return By</label> <input id="returnTime" type="datetime-local" value={returnTime} onChange={e => setReturnTime(e.target.value)} className={`mt-1 block w-full px-4 py-2 bg-[--color-bg-primary] border border-[--color-border] rounded-lg text-[--color-text-primary] focus:outline-none focus:ring-2 ${colors.ring}`} style={{fontSize: '16px'}}/> </div> <div> <label htmlFor="urgency" className="text-sm font-medium text-[--color-text-secondary]">Urgency</label> <select id="urgency" value={urgency} onChange={e => setUrgency(e.target.value as any)} className={`mt-1 block w-full px-4 py-2 bg-[--color-bg-primary] border border-[--color-border] rounded-lg text-[--color-text-primary] focus:outline-none focus:ring-2 ${colors.ring}`} style={{fontSize: '16px'}}> <option>Low</option> <option>Medium</option> <option>High</option> </select> </div> </div> )}
 
                         <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-                            <div><span className="text-sm font-medium text-gray-700">When?</span><div className="mt-2 flex flex-wrap gap-2">{[5, 10, 15, 30].map(min => (<button type="button" key={min} onClick={() => setEventTimeOffset(min)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${eventTimeOffset === min ? `${colors.bg} text-white` : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>In {min}m</button>))}</div></div>
-                            <div><span className="text-sm font-medium text-gray-700">For how long?</span><div className="mt-2 flex flex-wrap gap-2">{[30, 60, 90, 120].map(d => (<button type="button" key={d} onClick={() => setDuration(d)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${duration === d ? `${colors.bg} text-white` : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{d < 60 ? `${d}m` : `${d / 60}h`}</button>))}</div></div>
+                            <div><span className="text-sm font-medium text-[--color-text-secondary]">When?</span><div className="mt-2 flex flex-wrap gap-2">{[5, 10, 15, 30].map(min => (<button type="button" key={min} onClick={() => setEventTimeOffset(min)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${eventTimeOffset === min ? `${colors.bg} text-white` : 'bg-[--color-bg-tertiary] text-[--color-text-secondary] hover:bg-[--color-border]'}`}>In {min}m</button>))}</div></div>
+                            <div><span className="text-sm font-medium text-[--color-text-secondary]">For how long?</span><div className="mt-2 flex flex-wrap gap-2">{[30, 60, 90, 120].map(d => (<button type="button" key={d} onClick={() => setDuration(d)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${duration === d ? `${colors.bg} text-white` : 'bg-[--color-bg-tertiary] text-[--color-text-secondary] hover:bg-[--color-border]'}`}>{d < 60 ? `${d}m` : `${d / 60}h`}</button>))}</div></div>
                         </div>
                     </div>
 
-                    <div className="flex justify-end space-x-4 flex-shrink-0 pt-2 border-t border-gray-200">
-                        <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Cancel</button>
-                        <button type="submit" disabled={!isFormValid || isSubmitting} className={`px-6 py-2 ${colors.bg} text-white font-semibold rounded-lg shadow-md ${colors.hoverBg} focus:outline-none focus:ring-2 ${colors.ring} focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed`}>
+                    <div className="flex justify-end space-x-4 flex-shrink-0 pt-2 border-t border-[--color-border]">
+                        <button type="button" onClick={onClose} className="px-6 py-2 bg-[--color-bg-tertiary] text-[--color-text-primary] font-semibold rounded-lg hover:bg-[--color-border] focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Cancel</button>
+                        <button type="submit" disabled={!isFormValid || isSubmitting} className={`px-6 py-2 ${colors.bg} text-white font-semibold rounded-lg shadow-md ${colors.hoverBg} focus:outline-none focus:ring-2 ${colors.ring} focus:ring-offset-2 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed`}>
                             {isSubmitting ? 'Creating...' : 'Create'}
                         </button>
                     </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Session, User, SessionType } from '../../types';
 import SessionHistoryCard from './SessionHistoryCard';
@@ -19,11 +18,11 @@ const sessionTypeIcons: Record<SessionType, string> = {
 };
 
 const SkeletonCard: React.FC = () => (
-    <div className="bg-white rounded-lg shadow-sm p-3 flex items-center gap-3 animate-pulse">
-        <div className="w-10 h-10 bg-gray-200 rounded-md"></div>
+    <div className="bg-[--color-bg-primary] rounded-lg shadow-sm p-3 flex items-center gap-3 animate-pulse">
+        <div className="w-10 h-10 bg-[--color-bg-tertiary] rounded-md"></div>
         <div className="flex-grow space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-4 bg-[--color-bg-tertiary] rounded w-3/4"></div>
+            <div className="h-3 bg-[--color-bg-tertiary] rounded w-1/2"></div>
         </div>
     </div>
 );
@@ -68,7 +67,7 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ user }) => {
       avgSessionDuration: avgDuration,
       mostFrequentVibe: mostFrequentType ? { type: mostFrequentType[0] as SessionType, icon: sessionTypeIcons[mostFrequentType[0] as SessionType] } : { type: 'N/A', icon: '❓' },
     };
-  }, [userHistory]);
+  }, [userHistory, user.id]);
 
   const filteredHistory = useMemo(() => {
     const now = new Date();
@@ -107,9 +106,9 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ user }) => {
 
 
   const StatCard: React.FC<{ label: string; value: string | number; icon?: string }> = ({ label, value, icon }) => (
-    <div className="bg-gray-100 p-3 rounded-lg text-center">
-      <p className="text-sm text-gray-600">{label}</p>
-      <p className="text-2xl font-bold text-gray-800">
+    <div className="bg-[--color-bg-tertiary] p-3 rounded-lg text-center">
+      <p className="text-sm text-[--color-text-secondary]">{label}</p>
+      <p className="text-2xl font-bold text-[--color-text-primary]">
         {icon && <span className="mr-1">{icon}</span>}
         {value}
       </p>
@@ -131,14 +130,14 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ user }) => {
       <div className="space-y-2 pt-2">
         <div className="flex flex-wrap gap-2">
           {(['All', 'Created', 'Joined', 'Cookies Given'] as TypeFilter[]).map(f => (
-            <button key={f} onClick={() => setTypeFilter(f)} className={`px-3 py-1 text-sm font-semibold rounded-full transition-colors ${typeFilter === f ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+            <button key={f} onClick={() => setTypeFilter(f)} className={`px-3 py-1 text-sm font-semibold rounded-full transition-colors ${typeFilter === f ? 'bg-[--color-accent-primary] text-[--color-text-on-accent]' : 'bg-[--color-bg-tertiary] text-[--color-text-primary] hover:bg-[--color-border]'}`}>
               {f}
             </button>
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
            {(['Last Week', 'Last Month', 'All Time'] as DateFilter[]).map(f => (
-            <button key={f} onClick={() => setDateFilter(f)} className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${dateFilter === f ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+            <button key={f} onClick={() => setDateFilter(f)} className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${dateFilter === f ? 'bg-[--color-accent-secondary] text-[--color-text-on-accent]' : 'bg-[--color-bg-tertiary] text-[--color-text-primary] hover:bg-[--color-border]'}`}>
               {f}
             </button>
           ))}
@@ -154,8 +153,8 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ user }) => {
         ) : (
           <div className="text-center py-10">
             <p className="text-4xl mb-3">🗓️</p>
-            <h3 className="font-semibold text-gray-700">No history found</h3>
-            <p className="text-sm text-gray-500 mt-1">Try adjusting your filters or join a session!</p>
+            <h3 className="font-semibold text-[--color-text-primary]">No history found</h3>
+            <p className="text-sm text-[--color-text-secondary] mt-1">Try adjusting your filters or join a session!</p>
           </div>
         )}
       </div>

@@ -17,12 +17,12 @@ const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
   });
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col justify-between">
+    <div className="bg-[--color-bg-primary] p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col justify-between">
        <div>
-        <h4 className="font-bold text-gray-800">{note.title}</h4>
-        <p className="text-gray-600 whitespace-pre-wrap mt-2">{note.description}</p>
+        <h4 className="font-bold text-[--color-text-primary]">{note.title}</h4>
+        <p className="text-[--color-text-secondary] whitespace-pre-wrap mt-2">{note.description}</p>
       </div>
-      <p className="text-right text-xs text-gray-400 mt-4">{formattedDate}</p>
+      <p className="text-right text-xs text-[--color-text-secondary]/70 mt-4">{formattedDate}</p>
     </div>
   );
 };

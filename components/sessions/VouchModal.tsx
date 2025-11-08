@@ -40,10 +40,10 @@ const VouchModal: React.FC<VouchModalProps> = ({ isOpen, onClose, session, onVou
         aria-modal="true"
         aria-labelledby="vouch-title"
       >
-        <div className={`w-full max-w-sm bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 space-y-4 text-center modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-          <h2 id="vouch-title" className="text-xl font-bold text-gray-800">Rate Your Experience</h2>
-          <p className="text-gray-600">
-            Did <span className="font-semibold text-orange-600">{session.creator.username}</span> help you with <span className="font-semibold text-orange-600">{session.skillTag}</span>?
+        <div className={`w-full max-w-sm bg-[--color-bg-primary] sm:rounded-2xl rounded-t-2xl shadow-2xl p-6 space-y-4 text-center modal-content-container transform ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+          <h2 id="vouch-title" className="text-xl font-bold text-[--color-text-primary]">Rate Your Experience</h2>
+          <p className="text-[--color-text-secondary]">
+            Did <span className="font-semibold text-orange-500">{session.creator.username}</span> help you with <span className="font-semibold text-orange-500">{session.skillTag}</span>?
           </p>
 
           {/* Star Rating */}
@@ -58,7 +58,7 @@ const VouchModal: React.FC<VouchModalProps> = ({ isOpen, onClose, session, onVou
               ))}
           </div>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[--color-text-secondary]">
             Vouching for them will award them Cookie points!
           </p>
 
@@ -72,7 +72,7 @@ const VouchModal: React.FC<VouchModalProps> = ({ isOpen, onClose, session, onVou
             <button 
               type="button" 
               onClick={onClose} 
-              className="w-full px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
+              className="w-full px-4 py-2 bg-[--color-bg-tertiary] text-[--color-text-primary] font-semibold rounded-lg hover:bg-[--color-border]"
             >
               No, thanks
             </button>

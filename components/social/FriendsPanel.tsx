@@ -15,13 +15,13 @@ interface FriendsPanelProps {
 }
 
 const SkeletonFriendCard: React.FC = () => (
-    <div className="bg-white p-3 rounded-xl shadow-md flex items-center space-x-4 animate-pulse">
-        <div className="h-12 w-12 rounded-full flex-shrink-0 bg-gray-200"></div>
+    <div className="bg-[--color-bg-primary] p-3 rounded-xl shadow-md flex items-center space-x-4 animate-pulse">
+        <div className="h-12 w-12 rounded-full flex-shrink-0 bg-[--color-bg-tertiary]"></div>
         <div className="flex-grow space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-4 bg-[--color-bg-tertiary] rounded w-3/4"></div>
+            <div className="h-3 bg-[--color-bg-tertiary] rounded w-1/2"></div>
         </div>
-        <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+        <div className="h-8 w-8 bg-[--color-bg-tertiary] rounded-full"></div>
     </div>
 );
 
@@ -60,15 +60,15 @@ const FriendsPanel: React.FC<FriendsPanelProps> = ({ isLoading, friends, tags, o
           placeholder="Search friends..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-2 bg-[--color-bg-primary] border border-[--color-border] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[--color-accent-primary]"
           style={{fontSize: '16px'}}
         />
         <div className="flex items-center justify-end space-x-2">
-            <span className="text-sm font-medium text-gray-600">Sort by:</span>
+            <span className="text-sm font-medium text-[--color-text-secondary]">Sort by:</span>
              <select 
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="text-sm font-semibold text-green-600 bg-transparent border-none focus:ring-0"
+                className="text-sm font-semibold text-[--color-accent-primary] bg-transparent border-none focus:ring-0"
              >
                 <option>Recent</option>
                 <option>Cookie Score</option>
@@ -98,10 +98,10 @@ const FriendsPanel: React.FC<FriendsPanelProps> = ({ isLoading, friends, tags, o
       ) : (
         <div className="text-center py-16">
             <p className="text-5xl mb-4">👋🤝</p>
-            <h3 className="text-xl font-semibold text-gray-700">
+            <h3 className="text-xl font-semibold text-[--color-text-secondary]">
                 {searchQuery ? "No friends found" : "Start building your campus network!"}
             </h3>
-            <p className="text-gray-500 mt-2">
+            <p className="text-[--color-text-secondary] mt-2">
               {searchQuery ? "Try a different search." : "Use the Search tab to find and connect with classmates."}
             </p>
         </div>

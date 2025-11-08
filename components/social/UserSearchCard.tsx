@@ -27,19 +27,19 @@ const stringToColor = (str: string) => {
 const ActionButton: React.FC<{ status: RelationshipStatus, onAction: (action: ActionType) => void }> = ({ status, onAction }) => {
     switch (status) {
         case 'friend':
-            return <span className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-200 rounded-lg">Friends</span>;
+            return <span className="px-4 py-2 text-sm font-semibold text-[--color-text-secondary] bg-[--color-bg-tertiary] rounded-lg">Friends</span>;
         case 'request_sent':
-            return <button disabled className="px-4 py-2 text-sm font-semibold text-gray-500 bg-gray-100 rounded-lg cursor-not-allowed">Request Sent</button>;
+            return <button disabled className="px-4 py-2 text-sm font-semibold text-[--color-text-secondary] bg-[--color-bg-tertiary] rounded-lg cursor-not-allowed">Request Sent</button>;
         case 'request_received':
             return (
                 <div className="flex space-x-2">
-                    <button onClick={() => onAction('reject')} className="px-3 py-2 text-sm font-bold text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg">Reject</button>
-                    <button onClick={() => onAction('accept')} className="px-3 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg">Accept</button>
+                    <button onClick={() => onAction('reject')} className="px-3 py-2 text-sm font-bold text-[--color-text-primary] bg-[--color-bg-tertiary] hover:bg-[--color-border] rounded-lg">Reject</button>
+                    <button onClick={() => onAction('accept')} className="px-3 py-2 text-sm font-bold text-white bg-[--color-accent-primary] hover:bg-green-700 dark:hover:bg-green-500 rounded-lg">Accept</button>
                 </div>
             );
         case 'none':
         default:
-            return <button onClick={() => onAction('add')} className="px-4 py-2 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Add Friend</button>;
+            return <button onClick={() => onAction('add')} className="px-4 py-2 text-sm font-bold text-white bg-[--color-accent-secondary] hover:bg-purple-700 dark:hover:bg-purple-500 rounded-lg">Add Friend</button>;
     }
 };
 
@@ -49,7 +49,7 @@ const UserSearchCard: React.FC<UserSearchCardProps> = ({ user, status, onAction,
   const bgColor = stringToColor(user.id);
 
   return (
-    <div className="bg-white p-3 rounded-xl shadow-md flex items-center space-x-4">
+    <div className="bg-[--color-bg-primary] p-3 rounded-xl shadow-md flex items-center space-x-4">
       <button onClick={() => onViewProfile(user)} className="flex items-center space-x-4 flex-grow text-left">
           <div 
             className="h-12 w-12 rounded-full flex-shrink-0 flex items-center justify-center"
@@ -59,9 +59,9 @@ const UserSearchCard: React.FC<UserSearchCardProps> = ({ user, status, onAction,
           </div>
 
           <div className="flex-grow">
-            <h3 className="font-bold text-gray-800">{user.username}</h3>
-            <p className="text-sm text-gray-500">{user.branch}, {user.year}</p>
-            {user.mutualFriends > 0 && <p className="text-xs text-gray-400 mt-1">{user.mutualFriends} mutual friends</p>}
+            <h3 className="font-bold text-[--color-text-primary]">{user.username}</h3>
+            <p className="text-sm text-[--color-text-secondary]">{user.branch}, {user.year}</p>
+            {user.mutualFriends > 0 && <p className="text-xs text-[--color-text-secondary]/80 mt-1">{user.mutualFriends} mutual friends</p>}
           </div>
       </button>
 

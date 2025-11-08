@@ -15,22 +15,22 @@ interface PageHeaderProps {
 
 const PageHeader: React.FC<PageHeaderProps> = ({ username, onLogout }) => {
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between p-4 h-16 bg-white/80 backdrop-blur-sm border-b border-gray-200">
+    <header className="sticky top-0 z-20 flex items-center justify-between p-4 h-16 bg-[--color-bg-primary]/80 backdrop-blur-sm border-b border-[--color-border]">
       <div className="w-1/3">
-        <span className="text-sm font-semibold text-gray-700 truncate">{username}</span>
+        <span className="text-sm font-semibold text-[--color-text-secondary] truncate">{username}</span>
       </div>
       
       <div className="w-1/3 text-center">
         <h1 className="text-2xl font-bold">
-          <span className="text-green-600">Vibe</span>
-          <span className="text-black">X</span>
+          <span className="text-[--color-accent-primary]">Vibe</span>
+          <span className="text-[--color-text-primary]">X</span>
         </h1>
       </div>
       
       <div className="w-1/3 flex justify-end">
         <button 
             onClick={onLogout} 
-            className="p-2 text-gray-500 rounded-full hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+            className="p-2 text-[--color-text-secondary] rounded-full hover:bg-[--color-bg-tertiary] hover:text-[--color-text-primary] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[--color-accent-primary] transition-colors"
             aria-label="Log out"
         >
             <LogoutIcon className="h-6 w-6" />

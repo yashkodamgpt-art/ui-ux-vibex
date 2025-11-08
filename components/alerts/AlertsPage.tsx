@@ -62,12 +62,26 @@ const AlertsPage: React.FC<AlertsPageProps> = ({
 
         const channels: RealtimeChannel[] = [];
         conversationsWithMessages.forEach(convo => {
-            const channel = subscriptions.subscribeToDirectMessages(convo.id, (payload) => {
-                const newMessage = payload.new as DirectMessage;
+            const channel = subscriptions.subscribeToDirectMessages(convo.id, (newMessage) => {
                 setConversations(prevConvos => {
                     return prevConvos.map(c => {
                         if (c.id === newMessage.conversation_id) {
-                            // Avoid adding duplicate messages if optimistic update is used
+                            // If it's our own message, try to replace the optimistic one
+                            if (newMessage.senderId === user.id) {
+                                const optimisticIndex = c.messages.findIndex(m => 
+                                    m.id.startsWith('temp-') && 
+                                    m.text === newMessage.text
+                                );
+                                
+                                if (optimisticIndex > -1) {
+                                    const updatedMessages = [...c.messages];
+                                    updatedMessages[optimisticIndex] = newMessage; // replace
+                                    return { ...c, messages: updatedMessages };
+                                }
+                            }
+                            
+                            // Otherwise, if it's not our message, or we couldn't find an optimistic one, just add it.
+                            // But first, make sure we don't already have it (from another subscription event)
                             if (c.messages.some(m => m.id === newMessage.id)) return c;
                             return { ...c, messages: [...c.messages, newMessage] };
                         }
@@ -149,17 +163,17 @@ const AlertsPage: React.FC<AlertsPageProps> = ({
   return (
     <>
       <div className="h-full flex flex-col">
-        <div className="flex-shrink-0 border-b border-gray-200 px-4">
+        <div className="flex-shrink-0 border-b border-[--color-border] px-4 bg-[--color-bg-primary]">
           <nav className="flex justify-around -mb-px">
             <button
               onClick={() => setActiveTab('Messages')}
-              className={`w-full py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'Messages' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+              className={`w-full py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'Messages' ? 'border-[--color-accent-primary] text-[--color-accent-primary]' : 'border-transparent text-[--color-text-secondary] hover:text-[--color-text-primary] hover:border-[--color-border]'}`}
             >
               Messages
             </button>
             <button
               onClick={() => setActiveTab('Notifications')}
-              className={`w-full py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'Notifications' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+              className={`w-full py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${activeTab === 'Notifications' ? 'border-[--color-accent-primary] text-[--color-accent-primary]' : 'border-transparent text-[--color-text-secondary] hover:text-[--color-text-primary] hover:border-[--color-border]'}`}
             >
               Notifications
             </button>
@@ -171,10 +185,10 @@ const AlertsPage: React.FC<AlertsPageProps> = ({
         >
           <div className="h-full flex transition-transform duration-300 ease-out"
                style={{ transform: `translateX(${activeTab === 'Messages' ? '0%' : '-100%'})` }}>
-            <div className="min-w-full h-full overflow-y-auto bg-gray-50">
+            <div className="min-w-full h-full overflow-y-auto bg-[--color-bg-secondary]">
                <MessagesPanel conversations={conversations} currentUser={user} friends={friends} onOpenConversation={handleOpenConversation} isLoading={isLoading} />
             </div>
-            <div className="min-w-full h-full overflow-y-auto bg-gray-50">
+            <div className="min-w-full h-full overflow-y-auto bg-[--color-bg-secondary]">
               <NotificationsPanel
                 notifications={notifications}
                 onMarkAsRead={onMarkAsRead}

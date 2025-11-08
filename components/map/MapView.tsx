@@ -276,11 +276,11 @@ const MapView = forwardRef<MapViewRef, MapViewProps>((props, ref) => {
   }, [events]); // This effect now ONLY depends on the events data, ensuring maximum stability.
 
   return (
-    <div className="relative w-full h-full bg-green-200 z-0">
+    <div className="relative w-full h-full bg-[--color-bg-tertiary] z-0">
       <div ref={mapRef} className="w-full h-full" role="application" aria-label="Interactive map" />
-      {error && ( <p className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000] w-11/12 max-w-md text-center text-sm text-yellow-800 bg-yellow-100 p-3 rounded-lg shadow-md" role="alert">{error}</p>)}
-      <div className="absolute bottom-20 left-4 z-[1000] p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-md">
-        {loadingLocation ? ( <p className="text-gray-700 font-semibold text-sm animate-pulse">Finding you...</p> ) : ( <div> <p className="text-gray-900 font-mono text-xs">Lat: {displayCoords.lat.toFixed(4)}</p> <p className="text-gray-900 font-mono text-xs">Lon: {displayCoords.lng.toFixed(4)}</p> </div> )}
+      {error && ( <p className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000] w-11/12 max-w-md text-center text-sm text-yellow-800 dark:text-yellow-200 bg-yellow-100 dark:bg-yellow-500/20 p-3 rounded-lg shadow-md" role="alert">{error}</p>)}
+      <div className="absolute bottom-20 left-4 z-[1000] p-3 bg-[--color-bg-primary]/80 backdrop-blur-sm rounded-lg shadow-md">
+        {loadingLocation ? ( <p className="text-[--color-text-secondary] font-semibold text-sm animate-pulse">Finding you...</p> ) : ( <div> <p className="text-[--color-text-primary] font-mono text-xs">Lat: {displayCoords.lat.toFixed(4)}</p> <p className="text-[--color-text-primary] font-mono text-xs">Lon: {displayCoords.lng.toFixed(4)}</p> </div> )}
       </div>
     </div>
   );

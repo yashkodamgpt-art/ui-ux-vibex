@@ -11,10 +11,10 @@ const HomeHeader: React.FC<HomeHeaderProps> = () => {
       <div className="h-10 w-10" aria-hidden="true"></div>
       
       {/* Logo */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-md pointer-events-auto">
+      <div className="bg-[--color-bg-primary]/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-md pointer-events-auto">
         <h1 className="text-2xl font-bold">
-          <span className="text-green-600">Vibe</span>
-          <span className="text-black">X</span>
+          <span className="text-[--color-accent-primary]">Vibe</span>
+          <span className="text-[--color-text-primary]">X</span>
         </h1>
       </div>
 
