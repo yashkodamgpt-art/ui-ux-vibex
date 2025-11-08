@@ -267,7 +267,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
   const handleNotificationAction = useCallback((notification: Notification, action: 'accept' | 'reject' | 'view') => { try { if (notification.type === 'friend_request_received' && notification.user) { if (action === 'accept') { handleAcceptRequest(notification.user.id); } else if (action === 'reject') { handleRejectRequest(notification.user.id); } handleDeleteNotification(notification.id); } else if (action === 'view' && notification.session) { addToast(`Navigating to "${notification.session.title}"...`, 'info'); setActiveTab('Home'); setTimeout(() => { const sessionToFly = sessions.find(s => s.id === notification.session?.id); if (sessionToFly) mapViewRef.current?.flyToSession(sessionToFly); }, 100); handleMarkAsRead(notification.id); } } catch (e) { console.error("Error handling notification action:", e); } }, [handleAcceptRequest, handleRejectRequest, handleDeleteNotification, addToast, sessions, handleMarkAsRead]);
   const handleOpenCreateTagModal = useCallback(() => { setEditingTag(null); setIsCreateTagModalOpen(true); }, []);
   const handleOpenEditTagModal = useCallback((tag: Tag) => { setEditingTag(tag); setIsCreateTagModalOpen(true); }, []);
-  const handleSaveTag = useCallback(async (tagData: Omit<Tag, 'id' | 'memberIds'>) => {
+  const handleSaveTag = useCallback(async (tagData: Omit<Tag, 'id' | 'memberIds' | 'creator_id'>) => {
     if (editingTag) { const { data, error } = await supabaseService.updateTag(editingTag.id, tagData); if (error || !data) { addToast("Could not update tag.", "error"); } else { setTags(prev => prev.map(t => t.id === editingTag.id ? data[0] : t)); addToast("Tag updated!", "success"); }
     } else { const { data, error } = await supabaseService.createTag(tagData, user.id); if (error || !data) { addToast("Could not create tag.", "error"); } else { setTags(prev => [...prev, data[0]]); addToast("Tag created!", "success"); } }
     setIsCreateTagModalOpen(false); setEditingTag(null);
@@ -282,7 +282,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
   const handleRemoveFriend = useCallback((friendId: string) => { const friendToRemove = friends.find(f => f.id === friendId); if (!friendToRemove) return; setConfirmation({ title: `Remove ${friendToRemove.username}?`, message: `This will remove them from all your tags.`, onConfirm: async () => { const { error } = await supabaseService.removeFriend(user.id, friendId); if (error) { addToast("Could not remove friend.", "error"); } else { setFriends(prev => prev.filter(f => f.id !== friendId)); setTags(prev => prev.map(tag => ({ ...tag, memberIds: tag.memberIds.filter(id => id !== friendId) }))); addToast(`${friendToRemove.username} removed.`, "success"); } setConfirmation(null); } }); }, [friends, addToast, user.id]);
   
   // --- VISIBILITY & FILTER LOGIC ---
-  const visibleSessions = useMemo(() => { const userTagIds = new Set<string>(); tags.forEach(tag => { if (tag.memberIds.includes(user.id)) { userTagIds.add(tag.id); } }); return sessions.filter(session => { if (session.privacy !== 'private') return true; if (session.creator_id === user.id) return true; if (session.visibleToTags) { return session.visibleToTags.some(tagId => userTagIds.has(tagId)); } return false; }); }, [sessions, user.id, tags]);
+  const visibleSessions = useMemo(() => { const userTagIds = new Set<string>(); tags.forEach(tag => { if (tag.memberIds.includes(user.id) || tag.creator_id === user.id) { userTagIds.add(tag.id); } }); return sessions.filter(session => { if (session.privacy !== 'private') return true; if (session.creator_id === user.id) return true; if (session.visibleToTags) { return session.visibleToTags.some(tagId => userTagIds.has(tagId)); } return false; }); }, [sessions, user.id, tags]);
   const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => { const R = 6371e3; const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180; const Δφ = (lat2-lat1) * Math.PI/180; const Δλ = (lon2-lon1) * Math.PI/180; const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2); const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R * c; }
   const filterChips: FilterChip[] = (Object.keys(campusZones) as CampusZoneName[]).map(name => { const zone = campusZones[name]; const count = visibleSessions.filter(s => { if (name === 'All') return true; const d = getDistance(s.lat, s.lng, zone.coords[0], zone.coords[1]); return d <= zone.radius; }).length; return { name, count }; });
   const filteredSessions = visibleSessions.filter(s => { if (activeFilter === 'All') return true; const zone = campusZones[activeFilter]; const d = getDistance(s.lat, s.lng, zone.coords[0], zone.coords[1]); return d <= zone.radius; });
@@ -300,13 +300,38 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
         const { data, error } = await supabaseService.createSession(newSessionData as any);
         if (error || !data || data.length === 0) { throw error || new Error('Session creation returned no data.'); }
         const createdSession: Session = { ...data[0], creator: { username: user.profile.username } };
-        // The subscription will add the session to the state, but we can do it optimistically too.
+        
         setSessions(prevSessions => [createdSession, ...prevSessions]);
         setActiveVibe(createdSession);
+
+        if (createdSession.privacy === 'private' && createdSession.visibleToTags && createdSession.visibleToTags.length > 0) {
+            const memberIdsToNotify = new Set<string>();
+            tags.forEach(tag => {
+                if (createdSession.visibleToTags!.includes(tag.id)) {
+                    tag.memberIds.forEach(id => memberIdsToNotify.add(id));
+                }
+            });
+
+            memberIdsToNotify.delete(user.id);
+
+            if (memberIdsToNotify.size > 0) {
+                const notificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'> = {
+                    type: 'session_invite',
+                    user: { id: user.id, username: user.profile.username },
+                    session: { id: createdSession.id, title: createdSession.title, emoji: createdSession.emoji }
+                };
+                
+                for (const recipientId of memberIdsToNotify) {
+                    createNotification(notificationData, recipientId);
+                }
+                addToast(`Notified ${memberIdsToNotify.size} friends!`, 'info');
+            }
+        }
+
         handleCancelCreate();
         addToast("Session created successfully!", "success");
     } catch (e) { console.error("Error creating session:", e); addToast("Could not create session.", "error"); }
-  }, [newEventCoords, sessionValid, user, selectedSessionType, handleCancelCreate, addToast]);
+  }, [newEventCoords, sessionValid, user, selectedSessionType, handleCancelCreate, addToast, tags, createNotification]);
   
   // --- SESSION HANDLERS ---
   const onViewChat = useCallback(() => setIsChatVisible(true), []);

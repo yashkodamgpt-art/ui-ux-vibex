@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { Tag } from '../../types';
 import { containsOffensiveContent } from '../../lib/contentFilter'; // NEW
@@ -6,7 +5,7 @@ import { containsOffensiveContent } from '../../lib/contentFilter'; // NEW
 interface CreateTagModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (tagData: Omit<Tag, 'id' | 'memberIds'>) => void;
+  onSave: (tagData: Omit<Tag, 'id' | 'memberIds' | 'creator_id'>) => void;
   existingTag: Tag | null;
 }
 

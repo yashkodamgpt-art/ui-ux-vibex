@@ -12,7 +12,7 @@ interface SocialPageProps {
   friends: Friend[];
   tags: Tag[];
   friendRequests: FriendRequest[];
-  onSaveTag: (tagData: Omit<Tag, 'id' | 'memberIds'>) => void;
+  onSaveTag: (tagData: Omit<Tag, 'id' | 'memberIds' | 'creator_id'>) => void;
   onDeleteTag: (tagId: string) => void;
   onRemoveFriend: (friendId: string) => void;
   onSaveFriendTags: (friendId: string, selectedTagIds: string[]) => void;

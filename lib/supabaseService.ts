@@ -377,7 +377,7 @@ export const fetchTags = (userId: string) => {
     supabase
       .from('tags')
       .select('*')
-      .eq('creator_id', userId)
+      .or(`creator_id.eq.${userId},member_ids.cs.{${userId}}`)
       .then(({ data, error }) => ({
         data: data
           ? data.map((t: any) => ({
@@ -386,6 +386,8 @@ export const fetchTags = (userId: string) => {
               color: t.color,
               emoji: t.emoji,
               memberIds: t.member_ids || [],
+              // FIX: Add missing creator_id field to tag object mapping.
+              creator_id: t.creator_id,
             }))
           : null,
         error,
@@ -393,7 +395,7 @@ export const fetchTags = (userId: string) => {
   );
 };
 
-export const createTag = (tagData: Omit<Tag, 'id' | 'memberIds'>, userId: string) => {
+export const createTag = (tagData: Omit<Tag, 'id' | 'memberIds' | 'creator_id'>, userId: string) => {
   const dataToInsert = {
     name: tagData.name,
     color: tagData.color,
@@ -414,6 +416,8 @@ export const createTag = (tagData: Omit<Tag, 'id' | 'memberIds'>, userId: string
               color: t.color,
               emoji: t.emoji,
               memberIds: t.member_ids || [],
+              // FIX: Add missing creator_id field to tag object mapping.
+              creator_id: t.creator_id,
             }))
           : null,
         error,
@@ -441,6 +445,8 @@ export const updateTag = (tagId: string, updates: Partial<Omit<Tag, 'id'>>) => {
               color: t.color,
               emoji: t.emoji,
               memberIds: t.member_ids || [],
+              // FIX: Add missing creator_id field to tag object mapping.
+              creator_id: t.creator_id,
             }))
           : null,
         error,
