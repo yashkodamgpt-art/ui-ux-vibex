@@ -10,6 +10,7 @@ import type {
   Profile,
   Conversation,
   DirectMessage,
+  Vouch,
 } from '../types';
 
 // Helper function to handle Supabase responses
@@ -49,16 +50,13 @@ export const fetchActiveSessions = () => {
           creator_id: s.creator_id,
           visibleToTags: s.visible_to_tags || [],
           participantRoles: s.participant_roles || {},
-          helpCategory: s.help_category,
-          skillTag: s.skill_tag,
-          expectedOutcome: s.expected_outcome,
-          returnTime: s.return_time,
           creator: s.creator || { username: 'Unknown' }
         })) : null,
         error
       }))
   );
 };
+
 
 export const createSession = (sessionData: any) => {
   // Map frontend field names to database column names
@@ -191,17 +189,32 @@ export const leaveSession = async (sessionId: number, userId: string) => {
 };
 
 // --- VOUCHING ---
-export const createVouch = (voucherId: string, receiverId: string, sessionId: number, skill: string, points: number) => {
-  const vouchData = {
-    voucher_id: voucherId,
-    receiver_id: receiverId,
-    session_id: sessionId,
-    skill,
-    points,
-  };
+export const createVouch = (voucherId: string, receiverId: string, sessionId: number, skill: string) => {
   return handleResponse<any>(
-    supabase.from('vouches').insert([vouchData])
+    supabase.rpc('create_vouch_safe', {
+      p_voucher_id: voucherId,
+      p_receiver_id: receiverId,
+      p_session_id: sessionId,
+      p_skill: skill
+    })
   );
+};
+
+export const fetchUserVouchHistory = (userId: string) => {
+    return handleResponse<Vouch[]>(
+        supabase
+            .rpc('get_user_vouch_history', { p_user_id: userId })
+            .then(({ data, error }) => ({
+                data: data ? data.map((v: any) => ({
+                    id: v.id,
+                    voucherUsername: v.voucher_username,
+                    skill: v.skill,
+                    points: v.points,
+                    timestamp: v.timestamp
+                })) : null,
+                error
+            }))
+    );
 };
 
 
@@ -386,7 +399,6 @@ export const fetchTags = (userId: string) => {
               color: t.color,
               emoji: t.emoji,
               memberIds: t.member_ids || [],
-              // FIX: Add missing creator_id field to tag object mapping.
               creator_id: t.creator_id,
             }))
           : null,
@@ -416,7 +428,6 @@ export const createTag = (tagData: Omit<Tag, 'id' | 'memberIds' | 'creator_id'>,
               color: t.color,
               emoji: t.emoji,
               memberIds: t.member_ids || [],
-              // FIX: Add missing creator_id field to tag object mapping.
               creator_id: t.creator_id,
             }))
           : null,
@@ -425,7 +436,7 @@ export const createTag = (tagData: Omit<Tag, 'id' | 'memberIds' | 'creator_id'>,
   );
 };
 
-export const updateTag = (tagId: string, updates: Partial<Omit<Tag, 'id'>>) => {
+export const updateTag = (tagId: string, updates: Partial<Omit<Tag, 'id' | 'creator_id'>>) => {
   const dbUpdates: any = {};
   if (updates.name) dbUpdates.name = updates.name;
   if (updates.color) dbUpdates.color = updates.color;
@@ -445,7 +456,6 @@ export const updateTag = (tagId: string, updates: Partial<Omit<Tag, 'id'>>) => {
               color: t.color,
               emoji: t.emoji,
               memberIds: t.member_ids || [],
-              // FIX: Add missing creator_id field to tag object mapping.
               creator_id: t.creator_id,
             }))
           : null,

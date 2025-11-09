@@ -1,44 +1,5 @@
 import type { User, Session, Friend, Tag, FriendRequest, DirectMessage, Conversation, Notification, Vouch } from '../types';
 
-// --- NEW MOCK VOUCH HISTORY ---
-export const MOCK_VOUCH_HISTORY: Vouch[] = [
-  // Vouches for Python
-  { id: 'vouch-1', voucherUsername: 'Alice', skill: 'Python', points: 10, timestamp: new Date(Date.now() - 86400000 * 1).toISOString() },
-  { id: 'vouch-2', voucherUsername: 'Ethan', skill: 'Python', points: 10, timestamp: new Date(Date.now() - 86400000 * 2).toISOString() },
-  { id: 'vouch-3', voucherUsername: 'Alice', skill: 'Python', points: 8, timestamp: new Date(Date.now() - 86400000 * 3).toISOString() },
-  { id: 'vouch-4', voucherUsername: 'George', skill: 'Python', points: 10, timestamp: new Date(Date.now() - 86400000 * 4).toISOString() },
-  { id: 'vouch-5', voucherUsername: 'Alice', skill: 'Python', points: 6, timestamp: new Date(Date.now() - 86400000 * 5).toISOString() },
-  // Vouches for React
-  { id: 'vouch-6', voucherUsername: 'Fiona', skill: 'React', points: 10, timestamp: new Date(Date.now() - 86400000 * 1.5).toISOString() },
-  { id: 'vouch-7', voucherUsername: 'Kevin', skill: 'React', points: 10, timestamp: new Date(Date.now() - 86400000 * 2.5).toISOString() },
-  { id: 'vouch-8', voucherUsername: 'Laura', skill: 'React', points: 10, timestamp: new Date(Date.now() - 86400000 * 3.5).toISOString() },
-  { id: 'vouch-9', voucherUsername: 'Fiona', skill: 'React', points: 8, timestamp: new Date(Date.now() - 86400000 * 4.5).toISOString() },
-  // Vouches for Chess (from interests, but could be an expertise)
-  { id: 'vouch-10', voucherUsername: 'Bob', skill: 'Chess', points: 10, timestamp: new Date(Date.now() - 86400000 * 6).toISOString() },
-  { id: 'vouch-11', voucherUsername: 'Charlie', skill: 'Chess', points: 10, timestamp: new Date(Date.now() - 86400000 * 7).toISOString() },
-  { id: 'vouch-12', voucherUsername: 'Bob', skill: 'Chess', points: 8, timestamp: new Date(Date.now() - 86400000 * 8).toISOString() },
-  // Vouches for Football
-  { id: 'vouch-13', voucherUsername: 'Diana', skill: 'Football', points: 10, timestamp: new Date(Date.now() - 86400000 * 9).toISOString() },
-  { id: 'vouch-14', voucherUsername: 'Ian', skill: 'Football', points: 10, timestamp: new Date(Date.now() - 86400000 * 10).toISOString() },
-  { id: 'vouch-15', voucherUsername: 'Jane', skill: 'Football', points: 10, timestamp: new Date(Date.now() - 86400000 * 11).toISOString() },
-];
-
-// Calculate scores from history
-const calculateScores = (vouchHistory: Vouch[]) => {
-    const skillScores: { [key: string]: number } = {};
-    let totalScore = 0;
-    
-    vouchHistory.forEach(vouch => {
-        skillScores[vouch.skill] = (skillScores[vouch.skill] || 0) + vouch.points;
-        totalScore += vouch.points;
-    });
-
-    return { skillScores, totalScore };
-};
-
-const { skillScores, totalScore } = calculateScores(MOCK_VOUCH_HISTORY);
-
-
 // This is our mock user. We will use this to bypass the login crash.
 export const MOCK_USER: User = {
   id: '1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d',
@@ -50,10 +11,10 @@ export const MOCK_USER: User = {
     year: 2025,
     expertise: ['React', 'Python', 'Chess', 'Graphic Design'],
     interests: ['Football', 'Movies', 'Reading'],
-    cookieScore: totalScore,
+    cookieScore: 0,
     privacy: 'public',
-    skillScores: skillScores,
-    vouchHistory: MOCK_VOUCH_HISTORY.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
+    skillScores: {},
+    vouchHistory: [],
   },
 };
 
@@ -274,10 +235,10 @@ export const MOCK_FRIENDS: Friend[] = [
 
 // --- MOCK TAGS ---
 export const MOCK_TAGS: Tag[] = [
-  { id: 'tag-1', name: 'Badminton Buddies', color: 'blue', emoji: '🏸', memberIds: ['friend-1', 'friend-4', 'friend-9'] },
-  { id: 'tag-2', name: 'Chess Gang', color: 'gray', emoji: '♟️', memberIds: ['friend-2', 'friend-5', 'friend-8'] },
-  { id: 'tag-3', name: 'Movie Night', color: 'purple', emoji: '🎬', memberIds: ['friend-3', 'friend-6', 'friend-10', 'friend-12'] },
-  { id: 'tag-4', name: 'Study Group', color: 'green', emoji: '📚', memberIds: ['friend-5', 'friend-7', 'friend-9', 'friend-11', MOCK_USER.id] },
+  { id: 'tag-1', name: 'Badminton Buddies', color: 'blue', emoji: '🏸', memberIds: ['friend-1', 'friend-4', 'friend-9'], creator_id: 'friend-1' },
+  { id: 'tag-2', name: 'Chess Gang', color: 'gray', emoji: '♟️', memberIds: ['friend-2', 'friend-5', 'friend-8'], creator_id: 'friend-2' },
+  { id: 'tag-3', name: 'Movie Night', color: 'purple', emoji: '🎬', memberIds: ['friend-3', 'friend-6', 'friend-10', 'friend-12'], creator_id: 'friend-3' },
+  { id: 'tag-4', name: 'Study Group', color: 'green', emoji: '📚', memberIds: ['friend-5', 'friend-7', 'friend-9', 'friend-11', MOCK_USER.id], creator_id: MOCK_USER.id },
 ];
 
 

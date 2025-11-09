@@ -79,8 +79,8 @@ const App: React.FC = () => {
           interests: profile.interests || [],
           cookieScore: profile.cookie_score || 0,
           privacy: profile.privacy || 'public',
-          skillScores: profile.skillScores || {},
-          vouchHistory: profile.vouchHistory || [],
+          skillScores: profile.skill_scores || {},
+          vouchHistory: [],
         }
       });
     } else {
@@ -121,8 +121,8 @@ const App: React.FC = () => {
               interests: newProfile.interests || [],
               cookieScore: newProfile.cookie_score || 0,
               privacy: newProfile.privacy || 'public',
-              skillScores: newProfile.skillScores || {},
-              vouchHistory: newProfile.vouchHistory || [],
+              skillScores: newProfile.skill_scores || {},
+              vouchHistory: [],
             }
           });
         }

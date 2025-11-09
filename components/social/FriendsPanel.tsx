@@ -5,7 +5,6 @@ import FriendCard from './FriendCard';
 type SortOption = 'Recent' | 'Cookie Score' | 'Name (A-Z)';
 
 interface FriendsPanelProps {
-  isLoading: boolean;
   friends: Friend[];
   tags: Tag[];
   onViewProfile: (friend: Friend) => void;
@@ -14,18 +13,7 @@ interface FriendsPanelProps {
   onOpenDM: (friendId: string) => void; // NEW
 }
 
-const SkeletonFriendCard: React.FC = () => (
-    <div className="bg-[--color-bg-primary] p-3 rounded-xl shadow-md flex items-center space-x-4 animate-pulse">
-        <div className="h-12 w-12 rounded-full flex-shrink-0 bg-[--color-bg-tertiary]"></div>
-        <div className="flex-grow space-y-2">
-            <div className="h-4 bg-[--color-bg-tertiary] rounded w-3/4"></div>
-            <div className="h-3 bg-[--color-bg-tertiary] rounded w-1/2"></div>
-        </div>
-        <div className="h-8 w-8 bg-[--color-bg-tertiary] rounded-full"></div>
-    </div>
-);
-
-const FriendsPanel: React.FC<FriendsPanelProps> = ({ isLoading, friends, tags, onViewProfile, onRemoveFriend, onAssignToTags, onOpenDM }) => {
+const FriendsPanel: React.FC<FriendsPanelProps> = ({ friends, tags, onViewProfile, onRemoveFriend, onAssignToTags, onOpenDM }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('Recent');
 
@@ -78,11 +66,7 @@ const FriendsPanel: React.FC<FriendsPanelProps> = ({ isLoading, friends, tags, o
       </div>
 
       {/* Friends List */}
-      {isLoading ? (
-        <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => <SkeletonFriendCard key={i} />)}
-        </div>
-      ) : sortedAndFilteredFriends.length > 0 ? (
+      {sortedAndFilteredFriends.length > 0 ? (
         <div className="space-y-3">
           {sortedAndFilteredFriends.map(friend => (
             <FriendCard 

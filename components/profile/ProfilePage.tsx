@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { User, Profile, Session } from '../../types';
+import type { User, Profile, Session, Vouch } from '../../types';
 import CookieScoreDashboard from './CookieScoreDashboard';
 import SessionHistory from './SessionHistory';
 import * as supabaseService from '../../lib/supabaseService';
@@ -80,7 +80,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, theme,
   const [openSection, setOpenSection] = useState<string | null>('settings');
 
   useEffect(() => {
+    // Syncs with prop changes from parent (e.g., after a save),
+    // then fetches the user's latest vouch history from the DB.
     setProfileData(user.profile);
+
+    const loadVouchHistory = async () => {
+        const { data, error } = await supabaseService.fetchUserVouchHistory(user.id);
+        if (!error && data) {
+            setProfileData(prev => ({
+                ...prev,
+                vouchHistory: data,
+            }));
+        }
+    };
+    loadVouchHistory();
   }, [user]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -154,7 +167,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, theme,
           </div>
       </div>
 
-      <CookieScoreDashboard profile={user.profile} />
+      <CookieScoreDashboard profile={profileData} />
 
       <div className="p-4 space-y-4">
         <AccordionSection title="App Settings" sectionId="settings" openSection={openSection} setOpenSection={setOpenSection}>

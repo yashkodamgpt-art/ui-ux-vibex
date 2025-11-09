@@ -114,7 +114,6 @@ export interface Tag {
   color: string;
   emoji: string;
   memberIds: string[];
-  // FIX: Add creator_id to allow checking ownership for private session visibility.
   creator_id: string;
 }
 

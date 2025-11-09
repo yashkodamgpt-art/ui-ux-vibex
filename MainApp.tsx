@@ -19,7 +19,6 @@ import CreateSessionMenu from './components/sessions/CreateSessionMenu';
 import FilterChipBar, { type FilterChip } from './components/filters/FilterChipBar';
 import ConfirmationDialog from './components/common/ConfirmationDialog';
 import CreateTagModal from './components/social/CreateTagModal';
-// FIX: Module '"file:///components/social/AssignTagModal"' has no default export.
 import AssignTagModal from './components/social/AssignTagModal';
 import VouchModal from './components/sessions/VouchModal';
 import ActiveSessionIndicator from './components/sessions/ActiveSessionIndicator';
@@ -264,7 +263,40 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
     setActiveTab('Alerts');
   }, [user.id, addToast]);
 
-  const handleNotificationAction = useCallback((notification: Notification, action: 'accept' | 'reject' | 'view') => { try { if (notification.type === 'friend_request_received' && notification.user) { if (action === 'accept') { handleAcceptRequest(notification.user.id); } else if (action === 'reject') { handleRejectRequest(notification.user.id); } handleDeleteNotification(notification.id); } else if (action === 'view' && notification.session) { addToast(`Navigating to "${notification.session.title}"...`, 'info'); setActiveTab('Home'); setTimeout(() => { const sessionToFly = sessions.find(s => s.id === notification.session?.id); if (sessionToFly) mapViewRef.current?.flyToSession(sessionToFly); }, 100); handleMarkAsRead(notification.id); } } catch (e) { console.error("Error handling notification action:", e); } }, [handleAcceptRequest, handleRejectRequest, handleDeleteNotification, addToast, sessions, handleMarkAsRead]);
+  const handleNotificationAction = useCallback((notification: Notification, action: 'accept' | 'reject' | 'view') => {
+    try {
+      if (notification.type === 'friend_request_received' && notification.user) {
+        if (action === 'accept') {
+          handleAcceptRequest(notification.user.id);
+        } else if (action === 'reject') {
+          handleRejectRequest(notification.user.id);
+        }
+        handleDeleteNotification(notification.id);
+      } else if (action === 'view' && notification.session) {
+        addToast(`Opening "${notification.session.title}"...`, 'info');
+        setActiveTab('Home');
+        
+        setTimeout(() => {
+          const sessionToFly = sessions.find(s => s.id === notification.session?.id);
+          
+          if (sessionToFly) {
+            console.log(`[NOTIFICATION] Flying to session:`, sessionToFly);
+            mapViewRef.current?.flyToSession(sessionToFly);
+          } else {
+            console.warn(`[NOTIFICATION] Session ${notification.session.id} not found in current sessions array`, {
+              availableSessions: sessions.map(s => ({ id: s.id, title: s.title })),
+              requestedSessionId: notification.session.id
+            });
+            addToast('⚠️ Session may have ended or is not yet loaded. Try refreshing.', 'warning');
+          }
+        }, 150); // Increased delay to allow tab switch animation
+        
+        handleMarkAsRead(notification.id);
+      }
+    } catch (e) {
+      console.error("Error handling notification action:", e);
+    }
+  }, [handleAcceptRequest, handleRejectRequest, handleDeleteNotification, addToast, sessions, handleMarkAsRead]);
   const handleOpenCreateTagModal = useCallback(() => { setEditingTag(null); setIsCreateTagModalOpen(true); }, []);
   const handleOpenEditTagModal = useCallback((tag: Tag) => { setEditingTag(tag); setIsCreateTagModalOpen(true); }, []);
   const handleSaveTag = useCallback(async (tagData: Omit<Tag, 'id' | 'memberIds' | 'creator_id'>) => {
@@ -282,10 +314,43 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
   const handleRemoveFriend = useCallback((friendId: string) => { const friendToRemove = friends.find(f => f.id === friendId); if (!friendToRemove) return; setConfirmation({ title: `Remove ${friendToRemove.username}?`, message: `This will remove them from all your tags.`, onConfirm: async () => { const { error } = await supabaseService.removeFriend(user.id, friendId); if (error) { addToast("Could not remove friend.", "error"); } else { setFriends(prev => prev.filter(f => f.id !== friendId)); setTags(prev => prev.map(tag => ({ ...tag, memberIds: tag.memberIds.filter(id => id !== friendId) }))); addToast(`${friendToRemove.username} removed.`, "success"); } setConfirmation(null); } }); }, [friends, addToast, user.id]);
   
   // --- VISIBILITY & FILTER LOGIC ---
-  const visibleSessions = useMemo(() => { const userTagIds = new Set<string>(); tags.forEach(tag => { if (tag.memberIds.includes(user.id) || tag.creator_id === user.id) { userTagIds.add(tag.id); } }); return sessions.filter(session => { if (session.privacy !== 'private') return true; if (session.creator_id === user.id) return true; if (session.visibleToTags) { return session.visibleToTags.some(tagId => userTagIds.has(tagId)); } return false; }); }, [sessions, user.id, tags]);
+  const visibleSessions = useMemo(() => {
+    // This logic performs the final client-side check on which sessions to display.
+    const userTagIds = new Set(tags.map(tag => tag.id));
+
+    return sessions.filter(session => {
+      if (session.privacy !== 'private') {
+        return true; // Public sessions are always visible
+      }
+      if (session.creator_id === user.id) {
+        return true; // Creators always see their own sessions
+      }
+      if (session.visibleToTags && session.visibleToTags.length > 0) {
+        return session.visibleToTags.some(tagId => userTagIds.has(tagId));
+      }
+      return false; // Hide private sessions with no matching tags
+    });
+  }, [sessions, user.id, tags]);
+
   const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => { const R = 6371e3; const φ1 = lat1 * Math.PI/180; const φ2 = lat2 * Math.PI/180; const Δφ = (lat2-lat1) * Math.PI/180; const Δλ = (lon2-lon1) * Math.PI/180; const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2); const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R * c; }
-  const filterChips: FilterChip[] = (Object.keys(campusZones) as CampusZoneName[]).map(name => { const zone = campusZones[name]; const count = visibleSessions.filter(s => { if (name === 'All') return true; const d = getDistance(s.lat, s.lng, zone.coords[0], zone.coords[1]); return d <= zone.radius; }).length; return { name, count }; });
-  const filteredSessions = visibleSessions.filter(s => { if (activeFilter === 'All') return true; const zone = campusZones[activeFilter]; const d = getDistance(s.lat, s.lng, zone.coords[0], zone.coords[1]); return d <= zone.radius; });
+  
+  const filterChips: FilterChip[] = (Object.keys(campusZones) as CampusZoneName[]).map(name => { 
+    const zone = campusZones[name]; 
+    const count = visibleSessions.filter(s => { 
+      if (name === 'All') return true; 
+      const d = getDistance(s.lat, s.lng, zone.coords[0], zone.coords[1]); 
+      return d <= zone.radius; 
+    }).length; 
+    return { name, count }; 
+  });
+
+  const filteredSessions = useMemo(() => visibleSessions.filter(s => {
+    if (activeFilter === 'All') return true;
+    const zone = campusZones[activeFilter];
+    const d = getDistance(s.lat, s.lng, zone.coords[0], zone.coords[1]);
+    return d <= zone.radius;
+  }), [visibleSessions, activeFilter]);
+
   const handleFilterSelect = useCallback((filter: CampusZoneName) => setActiveFilter(filter), []);
   
   // --- CREATE FLOW ---
@@ -303,33 +368,55 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
         
         setSessions(prevSessions => [createdSession, ...prevSessions]);
         setActiveVibe(createdSession);
+        addToast("Session created successfully!", "success");
 
+        // Send notifications to all tagged friends for private sessions
         if (createdSession.privacy === 'private' && createdSession.visibleToTags && createdSession.visibleToTags.length > 0) {
             const memberIdsToNotify = new Set<string>();
+            
             tags.forEach(tag => {
                 if (createdSession.visibleToTags!.includes(tag.id)) {
-                    tag.memberIds.forEach(id => memberIdsToNotify.add(id));
+                    tag.memberIds.forEach(id => {
+                        if (id !== user.id) {
+                            memberIdsToNotify.add(id);
+                        }
+                    });
                 }
             });
 
-            memberIdsToNotify.delete(user.id);
+            console.log(`[PRIVATE-SESSION] Inviting ${memberIdsToNotify.size} friends:`, {
+                sessionId: createdSession.id,
+                sessionTitle: createdSession.title,
+                selectedTags: createdSession.visibleToTags,
+                recipientIds: Array.from(memberIdsToNotify)
+            });
 
             if (memberIdsToNotify.size > 0) {
-                const notificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'> = {
-                    type: 'session_invite',
-                    user: { id: user.id, username: user.profile.username },
-                    session: { id: createdSession.id, title: createdSession.title, emoji: createdSession.emoji }
-                };
-                
-                for (const recipientId of memberIdsToNotify) {
-                    createNotification(notificationData, recipientId);
+                try {
+                    const notificationPromises = Array.from(memberIdsToNotify).map(recipientId => {
+                        const notificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'> = {
+                            type: 'session_invite',
+                            user: { id: user.id, username: user.profile.username },
+                            session: { id: createdSession.id, title: createdSession.title, emoji: createdSession.emoji }
+                        };
+                        return createNotification(notificationData, recipientId);
+                    });
+
+                    await Promise.all(notificationPromises);
+                    
+                    console.log(`[PRIVATE-SESSION] Successfully sent ${memberIdsToNotify.size} notifications`);
+                    addToast(`📨 Invited ${memberIdsToNotify.size} friends to "${createdSession.title}"`, 'success');
+                } catch (error) {
+                    console.error('[PRIVATE-SESSION] Failed to send notifications:', error);
+                    addToast('⚠️ Session created, but some invites may not have been sent', 'warning');
                 }
-                addToast(`Notified ${memberIdsToNotify.size} friends!`, 'info');
+            } else {
+                console.warn('[PRIVATE-SESSION] No friends to notify (empty tags or tags with no members)');
+                addToast('⚠️ Private session created, but selected tags have no members', 'warning');
             }
         }
-
+        
         handleCancelCreate();
-        addToast("Session created successfully!", "success");
     } catch (e) { console.error("Error creating session:", e); addToast("Could not create session.", "error"); }
   }, [newEventCoords, sessionValid, user, selectedSessionType, handleCancelCreate, addToast, tags, createNotification]);
   
@@ -386,21 +473,22 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
     } catch (e) { console.error("Error transferring ownership:", e); addToast("Could not transfer ownership.", "error"); }
   }, [activeVibe, handleSendMessage, createNotification, addToast, user]);
   
-  // BUG FIX: Implemented vouch persistence and correct point calculation.
   const handleVouch = useCallback(async (creatorId: string, skill: string, rating: number) => {
     if (!vouchingSession) return;
     try {
-      const points = rating * 2; // Simple point logic: 5 stars = 10 points
-      const { error } = await supabaseService.createVouch(user.id, creatorId, vouchingSession.id, skill, points);
-      if (error) throw error;
+      // The `rating` is passed from the modal, but the new backend function handles points automatically.
+      const { error } = await supabaseService.createVouch(user.id, creatorId, vouchingSession.id, skill);
+      if (error) {
+        addToast(error.message || "Could not submit vouch.", "error");
+        return;
+      }
       
-      // Optimistic update of friend's score
-      setFriends(prev => prev.map(f => f.id === creatorId ? { ...f, cookieScore: f.cookieScore + points } : f));
+      // Optimistic update of friend's score is removed, as points are calculated on the backend.
       setVouchingSession(null);
-      addToast("Vouch submitted!", "success");
+      addToast("Vouch submitted successfully!", "success");
     } catch (e) {
       console.error("Error vouching:", e);
-      addToast("Could not submit vouch.", "error");
+      addToast("An unexpected error occurred while vouching.", "error");
     }
   }, [addToast, user.id, vouchingSession]);
   

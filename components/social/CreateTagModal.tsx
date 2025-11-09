@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { Tag } from '../../types';
 import { containsOffensiveContent } from '../../lib/contentFilter'; // NEW
