@@ -172,41 +172,57 @@ export const joinSession = async (
 
 export const leaveSession = async (sessionId: number, userId: string) => {
   try {
-    const { data: session, error } = await supabase
-      .from('sessions')
-      .select('participants, participant_roles')
-      .eq('id', sessionId)
-      .single();
+    const { data, error } = await supabase.rpc('leave_session_safe', {
+      p_session_id: sessionId,
+      p_user_id: userId
+    });
 
-    if (error || !session) {
-      return { data: null, error: error || new Error('Session not found') };
+    if (error) {
+      console.error('Error leaving session:', error);
+      return { data: null, error };
     }
 
-    const newParticipants = (session.participants || []).filter(
-      (pId: string) => pId !== userId
-    );
-    const newRoles = { ...(session.participant_roles || {}) };
-    delete newRoles[userId];
+    if (data && !data.success) {
+      return { 
+        data: null, 
+        error: new Error(data.error || 'Failed to leave session') 
+      };
+    }
 
-    return updateSession(sessionId, {
-      participants: newParticipants,
-      participantRoles: newRoles,
-    });
+    return { data: data, error: null };
   } catch (e) {
+    console.error('Unexpected error in leaveSession:', e);
     return { data: null, error: e };
   }
 };
 
 // --- VOUCHING ---
-export const createVouch = (voucherId: string, receiverId: string, sessionId: number, skill: string) => {
-  return handleResponse<any>(
-    supabase.rpc('create_vouch_safe', {
+export const createVouch = async (voucherId: string, receiverId: string, sessionId: number, skill: string) => {
+  try {
+    const { data, error } = await supabase.rpc('create_vouch_safe', {
       p_voucher_id: voucherId,
       p_receiver_id: receiverId,
       p_session_id: sessionId,
       p_skill: skill
-    })
-  );
+    });
+
+    if (error) {
+      console.error('Error creating vouch:', error);
+      return { data: null, error };
+    }
+
+    if (data && !data.success) {
+      return { 
+        data: null, 
+        error: new Error(data.error || 'Failed to create vouch') 
+      };
+    }
+
+    return { data: data, error: null };
+  } catch (e) {
+    console.error('Unexpected error in createVouch:', e);
+    return { data: null, error: e };
+  }
 };
 
 export const fetchUserVouchHistory = (userId: string) => {
@@ -656,18 +672,30 @@ export const deleteNotification = (notificationId: string) => {
     );
 };
 
-export const createNotification = (
+export const createNotification = async (
   notificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>,
   recipientId: string
 ) => {
-  const dbData = {
-    recipient_id: recipientId,
-    type: notificationData.type,
-    actor_id: notificationData.user?.id,
-    session_id: notificationData.session?.id,
-    tag_id: notificationData.tag?.id,
-  };
-  return handleResponse(supabase.from('notifications').insert(dbData));
+  try {
+    const { data, error } = await supabase.rpc('create_notification_safe', {
+      p_recipient_id: recipientId,
+      p_type: notificationData.type,
+      p_actor_id: notificationData.user?.id,
+      p_session_id: notificationData.session?.id,
+      p_tag_id: notificationData.tag?.id,
+    });
+
+    if (error) {
+      // The RLS error will be caught here
+      console.error('Error creating notification:', error);
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (e: any) {
+    console.error('Unexpected error in createNotification:', e);
+    return { data: null, error: e instanceof Error ? e : new Error('An unexpected error occurred') };
+  }
 };
 
 

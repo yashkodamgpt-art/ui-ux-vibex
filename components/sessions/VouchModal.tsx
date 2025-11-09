@@ -22,9 +22,10 @@ const VouchModal: React.FC<VouchModalProps> = ({ isOpen, onClose, session, onVou
   if (!isOpen) return null;
 
   const handleVouch = () => {
-      if (session.skillTag) {
-          onVouch(session.creator_id, session.skillTag, rating);
-      }
+    if (session.skillTag) {
+      // Rating is ignored - backend calculates points automatically
+      onVouch(session.creator_id, session.skillTag, rating);
+    }
   };
 
   return (

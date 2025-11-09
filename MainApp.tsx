@@ -226,8 +226,13 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
     await supabaseService.deleteNotification(notificationId);
   }, []);
-  const createNotification = useCallback(async (notificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>, recipientId: string) => {
-      await supabaseService.createNotification(notificationData, recipientId);
+  const createNotification = useCallback(async (notificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'>, recipientId: string): Promise<boolean> => {
+      const { error } = await supabaseService.createNotification(notificationData, recipientId);
+      if (error) {
+        console.error(`Failed to create notification for ${recipientId}:`, error);
+        return false;
+      }
+      return true;
   }, []);
   
   // --- SOCIAL HANDLERS (with try-catch) ---
@@ -384,35 +389,28 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
                 }
             });
 
-            console.log(`[PRIVATE-SESSION] Inviting ${memberIdsToNotify.size} friends:`, {
-                sessionId: createdSession.id,
-                sessionTitle: createdSession.title,
-                selectedTags: createdSession.visibleToTags,
-                recipientIds: Array.from(memberIdsToNotify)
-            });
-
             if (memberIdsToNotify.size > 0) {
-                try {
-                    const notificationPromises = Array.from(memberIdsToNotify).map(recipientId => {
-                        const notificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'> = {
-                            type: 'session_invite',
-                            user: { id: user.id, username: user.profile.username },
-                            session: { id: createdSession.id, title: createdSession.title, emoji: createdSession.emoji }
-                        };
-                        return createNotification(notificationData, recipientId);
-                    });
+                const notificationPromises = Array.from(memberIdsToNotify).map(recipientId => {
+                    const notificationData: Omit<Notification, 'id' | 'timestamp' | 'isRead'> = {
+                        type: 'session_invite',
+                        user: { id: user.id, username: user.profile.username },
+                        session: { id: createdSession.id, title: createdSession.title, emoji: createdSession.emoji }
+                    };
+                    return createNotification(notificationData, recipientId);
+                });
 
-                    await Promise.all(notificationPromises);
-                    
-                    console.log(`[PRIVATE-SESSION] Successfully sent ${memberIdsToNotify.size} notifications`);
-                    addToast(`📨 Invited ${memberIdsToNotify.size} friends to "${createdSession.title}"`, 'success');
-                } catch (error) {
-                    console.error('[PRIVATE-SESSION] Failed to send notifications:', error);
-                    addToast('⚠️ Session created, but some invites may not have been sent', 'warning');
+                const results = await Promise.all(notificationPromises);
+                const successfulCount = results.filter(Boolean).length;
+                
+                console.log(`[PRIVATE-SESSION] Attempted to send ${memberIdsToNotify.size} notifications, ${successfulCount} succeeded.`);
+
+                if (successfulCount > 0) {
+                    addToast(`📨 Invited ${successfulCount} friends to "${createdSession.title}"`, 'success');
                 }
-            } else {
-                console.warn('[PRIVATE-SESSION] No friends to notify (empty tags or tags with no members)');
-                addToast('⚠️ Private session created, but selected tags have no members', 'warning');
+                
+                if (successfulCount < memberIdsToNotify.size) {
+                    addToast('⚠️ Some session invites could not be sent.', 'warning');
+                }
             }
         }
         
@@ -432,15 +430,51 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
   const handleJoinVibe = useCallback(async (sessionId: number, role: 'seeking' | 'offering' | 'participant' | 'giver' = 'participant') => {
     try {
         if (activeVibe) { addToast("You're already in a Vibe.", 'info'); return; }
+
         const { data, error } = await supabaseService.joinSession(sessionId, user.id, role);
-        if (error || !data || data.length === 0) { throw error || new Error('Join session returned no data.'); }
-        const updatedSessionData = data[0];
+
+        if (error) {
+            // Check for the specific error message from the backend.
+            if (error.message.includes('Already a participant')) {
+                addToast("You're already in this session.", 'info');
+                // Even if they are already a participant, we should set this as the active vibe
+                // in case their client state was out of sync.
+                const alreadyJoinedSession = sessions.find(s => s.id === sessionId);
+                if (alreadyJoinedSession) {
+                    setActiveVibe(alreadyJoinedSession);
+                }
+            } else {
+                // For other errors, show the message from the backend.
+                addToast(error.message || 'Could not join session.', 'error');
+            }
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            addToast('Failed to join session. Please try again.', 'error');
+            return;
+        }
+
+        const updatedSessionData = data[0]; // This has { participants, participant_roles }
         const originalSession = sessions.find(s => s.id === sessionId);
-        const joinedSession: Session = { ...originalSession, ...updatedSessionData } as Session;
+        if (!originalSession) {
+             addToast('Error: Could not find original session data on client.', 'error');
+             return;
+        }
+        
+        const joinedSession: Session = {
+          ...originalSession,
+          participants: updatedSessionData.participants,
+          participantRoles: updatedSessionData.participant_roles, // Mapping db column to TS property
+        };
+        
         setSessions(prev => prev.map(s => (s.id === sessionId ? joinedSession : s)));
         setActiveVibe(joinedSession);
         addToast(`Joined "${joinedSession.title}"!`, "success");
-    } catch (e) { console.error("Error joining session:", e); addToast("Could not join session.", "error"); }
+    } catch (e: any) { 
+        console.error("Critical error in handleJoinVibe:", e);
+        addToast(e.message || "An unexpected error occurred.", "error"); 
+    }
   }, [activeVibe, user.id, addToast, sessions]);
   
   const handleSendMessage = useCallback(async (text: string, isSystemMessage = false) => {
@@ -453,14 +487,33 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
   // --- SESSION EDGE CASES ---
   const handleLeaveVibe = useCallback(async (sessionId: number) => {
     try {
-        const leavingSession = sessions.find(s => s.id === sessionId); if (!leavingSession) return;
-        const isCreatorLeaving = leavingSession.creator_id === user.id; const remainingParticipants = leavingSession.participants.filter(pId => pId !== user.id);
-        if (remainingParticipants.length === 0) { const { error } = await supabaseService.deleteSession(sessionId); if (error) throw error; addToast(`"${leavingSession.title}" has been closed.`, 'info'); } 
-        else if (isCreatorLeaving) { const newOwnerId = remainingParticipants[0]; const { data: profileData, error: profileError } = await supabase.from('profiles').select('username').eq('id', newOwnerId).single(); if (profileError || !profileData) throw profileError || new Error("Could not find new owner's profile."); const { error } = await supabaseService.updateSession(sessionId, { creator_id: newOwnerId, participants: remainingParticipants }); if (error) throw error; addToast(`You left. ${profileData.username} is the new leader.`, 'info'); } 
-        else { const { error } = await supabaseService.leaveSession(sessionId, user.id); if (error) throw error; addToast(`You left "${leavingSession.title}".`, 'info'); }
-        setActiveVibe(null); setIsChatVisible(false);
-        if (leavingSession.sessionType === 'cookie' && leavingSession.creator_id !== user.id) { setVouchingSession(leavingSession); }
-    } catch (e) { console.error("Error leaving session:", e); addToast("Could not leave session.", "error"); }
+      const leavingSession = sessions.find(s => s.id === sessionId);
+      if (!leavingSession) return;
+  
+      const { data, error } = await supabaseService.leaveSession(sessionId, user.id);
+      
+      if (error || !data) {
+        addToast(error?.message || "Could not leave session.", "error");
+        return;
+      }
+  
+      if (data.session_closed) {
+        addToast(`"${leavingSession.title}" has been closed.`, 'info');
+      } else {
+        addToast(`You left "${leavingSession.title}".`, 'info');
+      }
+  
+      setActiveVibe(null);
+      setIsChatVisible(false);
+  
+      // Check if this was a cookie session and user should vouch
+      if (leavingSession.sessionType === 'cookie' && leavingSession.creator_id !== user.id) {
+        setVouchingSession(leavingSession);
+      }
+    } catch (e) {
+      console.error("Error leaving session:", e);
+      addToast("Could not leave session.", "error");
+    }
   }, [sessions, user.id, addToast]);
 
   // --- OWNERSHIP & VOUCH HANDLERS ---
@@ -468,24 +521,37 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
     try {
         const { error } = await supabaseService.updateSession(sessionId, { creator_id: newOwnerId }); if (error) throw error;
         handleSendMessage(`👑 ${user.profile.username} made ${newOwnerUsername} the new leader.`, true);
-        createNotification({ type: 'ownership_transfer', session: { id: sessionId, title: activeVibe?.title || '', emoji: activeVibe?.emoji || '' }, user: { id: user.id, username: user.profile.username } }, newOwnerId);
-        setConfirmation(null); addToast(`${newOwnerUsername} is now the leader.`, 'success');
+        const notificationSuccess = await createNotification({ type: 'ownership_transfer', session: { id: sessionId, title: activeVibe?.title || '', emoji: activeVibe?.emoji || '' }, user: { id: user.id, username: user.profile.username } }, newOwnerId);
+        setConfirmation(null); 
+        addToast(`${newOwnerUsername} is now the leader.`, 'success');
+        if (!notificationSuccess) {
+            addToast('Could not send ownership notification.', 'warning');
+        }
     } catch (e) { console.error("Error transferring ownership:", e); addToast("Could not transfer ownership.", "error"); }
   }, [activeVibe, handleSendMessage, createNotification, addToast, user]);
   
   const handleVouch = useCallback(async (creatorId: string, skill: string, rating: number) => {
     if (!vouchingSession) return;
+    
     try {
-      // The `rating` is passed from the modal, but the new backend function handles points automatically.
-      const { error } = await supabaseService.createVouch(user.id, creatorId, vouchingSession.id, skill);
-      if (error) {
-        addToast(error.message || "Could not submit vouch.", "error");
+      const { data, error } = await supabaseService.createVouch(
+        user.id,
+        creatorId,
+        vouchingSession.id,
+        skill
+      );
+      
+      if (error || !data) {
+        addToast(error?.message || "Could not submit vouch.", "error");
         return;
       }
       
-      // Optimistic update of friend's score is removed, as points are calculated on the backend.
-      setVouchingSession(null);
-      addToast("Vouch submitted successfully!", "success");
+      if (data.success) {
+        addToast(`Vouch submitted! +${data.points} 🍪 awarded`, "success");
+        setVouchingSession(null);
+      } else {
+        addToast(data.error || "Could not submit vouch.", "error");
+      }
     } catch (e) {
       console.error("Error vouching:", e);
       addToast("An unexpected error occurred while vouching.", "error");
@@ -521,6 +587,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
       
       <main className="flex-grow relative overflow-hidden">
         {error && (<div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] bg-red-500/10 dark:bg-red-500/20 border border-red-500/30 text-[--color-error] px-4 py-3 rounded shadow-lg max-w-md w-11/12" role="alert"><span className="block sm:inline">{error}</span></div>)}
+          {/* FIX: Removed a duplicated and malformed MapView component and corrected the `isVisible` prop type. */}
           <div className={`h-full w-full ${activeTab === 'Home' ? 'block' : 'hidden'}`}><MapView ref={mapViewRef} isVisible={activeTab === 'Home'} isCreateMode={isPlacementMode} userLocation={userLocation} onSetUserLocation={setUserLocation} onMapClick={handleMapPlacement} events={filteredSessions} user={user} activeVibe={activeVibe} onCloseEvent={handleCloseEvent} onExtendEvent={handleExtendEvent} onJoinVibe={handleJoinVibe} onViewChat={onViewChat} activeFilter={activeFilter} campusZones={campusZones} friends={friends}/> <div className="fixed bottom-20 right-6 z-[1000] flex flex-col items-center space-y-4"> <MyLocationButton onClick={handleRecenterMap} disabled={!userLocation} /> <CreateSessionMenu isOpen={isCreateMenuOpen} onSelectType={handleSelectSessionType} /> <CreateEventButton onClick={handleCreateButtonClick} isActive={isCreateMenuOpen || isPlacementMode} /> </div> </div>
           <div className={`h-full overflow-y-auto pb-16 ${activeTab === 'Social' ? 'block' : 'hidden'}`}><SocialPage user={user} friends={friends} tags={tags} friendRequests={friendRequests} onSaveTag={handleSaveTag} onDeleteTag={handleDeleteTag} onRemoveFriend={handleRemoveFriend} onSaveFriendTags={handleSaveFriendTags} onSendRequest={handleSendRequest} onAcceptRequest={handleAcceptRequest} onRejectRequest={handleRejectRequest} onViewFriendProfile={handleViewFriendProfile} setConfirmation={setConfirmation} onOpenCreateTagModal={handleOpenCreateTagModal} onOpenEditTagModal={handleOpenEditTagModal} onOpenAssignTagModal={handleOpenAssignTagModal} onOpenDM={handleOpenDM} /></div>
           <div className={`h-full overflow-y-auto pb-16 ${activeTab === 'Alerts' ? 'block' : 'hidden'}`}><AlertsPage user={user} friends={friends} notifications={notifications} onMarkAsRead={handleMarkAsRead} onMarkAllAsRead={handleMarkAllAsRead} onDeleteNotification={handleDeleteNotification} onNotificationAction={handleNotificationAction} dmTarget={dmTarget} onDmTargetHandled={() => setDmTarget(null)} /></div>
