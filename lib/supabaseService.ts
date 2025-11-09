@@ -139,24 +139,33 @@ export const joinSession = async (
   role: 'seeking' | 'offering' | 'participant' | 'giver' = 'participant'
 ) => {
   try {
-    const { data: session, error } = await supabase
-      .from('sessions')
-      .select('participants, participant_roles')
-      .eq('id', sessionId)
-      .single();
+    const { data, error } = await supabase.rpc('join_session_safe', {
+      p_session_id: sessionId,
+      p_user_id: userId,
+      p_role: role
+    });
 
-    if (error || !session) {
-      return { data: null, error: error || new Error('Session not found') };
+    if (error) {
+      console.error('Error joining session:', error);
+      return { data: null, error };
     }
 
-    const newParticipants = [...new Set([...(session.participants || []), userId])];
-    const newRoles = { ...(session.participant_roles || {}), [userId]: role };
+    if (data && !data.success) {
+      return { 
+        data: null, 
+        error: new Error(data.error || 'Failed to join session') 
+      };
+    }
 
-    return updateSession(sessionId, {
-      participants: newParticipants,
-      participantRoles: newRoles,
-    });
+    return {
+      data: [{
+        participants: data.participants,
+        participant_roles: data.participant_roles
+      }],
+      error: null
+    };
   } catch (e) {
+    console.error('Unexpected error in joinSession:', e);
     return { data: null, error: e };
   }
 };

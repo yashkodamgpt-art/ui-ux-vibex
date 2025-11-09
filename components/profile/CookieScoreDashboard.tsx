@@ -45,9 +45,9 @@ const VouchRow: React.FC<{ vouch: Vouch }> = ({ vouch }) => {
 const CookieScoreDashboard: React.FC<CookieScoreDashboardProps> = ({ profile }) => {
   const [openSection, setOpenSection] = useState<string | null>(null);
   
-  // FIX: Using array index access for sorting is more robust for TypeScript's type inference,
-  // resolving potential arithmetic operation errors if types are not correctly inferred from destructuring.
-  const sortedSkills = Object.entries(profile.skillScores || {}).sort((a, b) => b[1] - a[1]);
+  // FIX: The value from Object.entries might not be correctly inferred as a number.
+  // Coercing to Number ensures the subtraction is a valid arithmetic operation.
+  const sortedSkills = Object.entries(profile.skillScores || {}).sort((a, b) => Number(b[1]) - Number(a[1]));
 
   return (
     <div className="p-4 space-y-4">

@@ -56,9 +56,9 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ user }) => {
       return acc;
     }, {} as Record<SessionType, number>);
 
-    // FIX: Using array index access for sorting is more robust for TypeScript's type inference,
-    // resolving potential arithmetic operation errors if types are not correctly inferred from destructuring.
-    const mostFrequentType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
+    // FIX: The value from Object.entries might not be correctly inferred as a number.
+    // Using Number() coercion ensures the subtraction is a valid arithmetic operation.
+    const mostFrequentType = Object.entries(typeCounts).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
 
     return {
       totalJoined: userHistory.length,
