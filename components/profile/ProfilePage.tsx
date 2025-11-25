@@ -79,14 +79,23 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, theme,
   const [showSuccess, setShowSuccess] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>('settings');
 
-  useEffect(() => {
-    // Syncs with prop changes from parent (e.g., after a save),
-    // then fetches the user's latest vouch history from the DB.
-    setProfileData(user.profile);
+  // FIX: Separated useEffect hooks to prevent race conditions when updating the profile.
 
+  // Effect 1: Sync local profile data with the user prop from App.tsx.
+  // This ensures optimistic updates (like from vouching) are reflected immediately.
+  useEffect(() => {
+    setProfileData(user.profile);
+  }, [user.profile]);
+
+  // Effect 2: Fetch vouch history from the database.
+  // This runs only when the user ID changes (i.e., on initial load) to avoid
+  // re-fetching and potentially overwriting optimistically updated state.
+  useEffect(() => {
     const loadVouchHistory = async () => {
         const { data, error } = await supabaseService.fetchUserVouchHistory(user.id);
         if (!error && data) {
+            // Update only the vouch history part of the state, preserving other fields
+            // that might have been optimistically updated (like cookieScore).
             setProfileData(prev => ({
                 ...prev,
                 vouchHistory: data,
@@ -94,7 +103,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onProfileUpdate, theme,
         }
     };
     loadVouchHistory();
-  }, [user]);
+  }, [user.id]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

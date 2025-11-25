@@ -680,21 +680,37 @@ export const createNotification = async (
     const { data, error } = await supabase.rpc('create_notification_safe', {
       p_recipient_id: recipientId,
       p_type: notificationData.type,
-      p_actor_id: notificationData.user?.id,
-      p_session_id: notificationData.session?.id,
-      p_tag_id: notificationData.tag?.id,
+      p_actor_id: notificationData.user?.id || null,
+      p_session_id: notificationData.session?.id || null,
+      p_tag_id: notificationData.tag?.id || null,
     });
 
     if (error) {
-      // The RLS error will be caught here
+      // Check for the specific database type mismatch error.
+      if (error.message && error.message.includes('is of type notification_type but expression is of type text')) {
+        const helpfulError = new Error(
+          "Database type mismatch: The backend function 'create_notification_safe' is not casting the 'type' parameter correctly. " +
+          "FIX: Please update your 'create_notification_safe' SQL function. " +
+          "Inside the function, change the line `VALUES (..., p_type, ...)` to `VALUES (..., p_type::notification_type, ...)` to correctly cast the text to the enum type."
+        );
+        console.error('Specific Backend Error Detected:', helpfulError.message, error);
+        return { data: null, error: helpfulError };
+      }
+
+      // Existing fallback for other errors
       console.error('Error creating notification:', error);
-      return { data: null, error };
+      const detailedError = new Error(error.message || 'Failed to create notification via RPC.');
+      (detailedError as any).details = error.details;
+      (detailedError as any).hint = error.hint;
+      (detailedError as any).code = error.code;
+      return { data: null, error: detailedError };
     }
 
     return { data, error: null };
   } catch (e: any) {
     console.error('Unexpected error in createNotification:', e);
-    return { data: null, error: e instanceof Error ? e : new Error('An unexpected error occurred') };
+    const betterError = new Error(e.message || 'An unexpected error occurred');
+    return { data: null, error: betterError };
   }
 };
 

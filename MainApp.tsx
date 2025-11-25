@@ -230,10 +230,13 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
       const { error } = await supabaseService.createNotification(notificationData, recipientId);
       if (error) {
         console.error(`Failed to create notification for ${recipientId}:`, error);
+        // Show a more informative but still brief toast.
+        const briefError = error.message.split(':')[0]; // e.g., "Database type mismatch"
+        addToast(briefError, 'error');
         return false;
       }
       return true;
-  }, []);
+  }, [addToast]);
   
   // --- SOCIAL HANDLERS (with try-catch) ---
   const handleSocialActions = useMemo(() => ({
@@ -330,6 +333,11 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
       if (session.creator_id === user.id) {
         return true; // Creators always see their own sessions
       }
+      // --- FIX: Add this check ---
+      if (session.participants.includes(user.id)) {
+        return true; // Participants always see sessions they are in
+      }
+      // --- End of Fix ---
       if (session.visibleToTags && session.visibleToTags.length > 0) {
         return session.visibleToTags.some(tagId => userTagIds.has(tagId));
       }
@@ -406,10 +414,6 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
 
                 if (successfulCount > 0) {
                     addToast(`📨 Invited ${successfulCount} friends to "${createdSession.title}"`, 'success');
-                }
-                
-                if (successfulCount < memberIdsToNotify.size) {
-                    addToast('⚠️ Some session invites could not be sent.', 'warning');
                 }
             }
         }
@@ -521,12 +525,9 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
     try {
         const { error } = await supabaseService.updateSession(sessionId, { creator_id: newOwnerId }); if (error) throw error;
         handleSendMessage(`👑 ${user.profile.username} made ${newOwnerUsername} the new leader.`, true);
-        const notificationSuccess = await createNotification({ type: 'ownership_transfer', session: { id: sessionId, title: activeVibe?.title || '', emoji: activeVibe?.emoji || '' }, user: { id: user.id, username: user.profile.username } }, newOwnerId);
+        await createNotification({ type: 'ownership_transfer', session: { id: sessionId, title: activeVibe?.title || '', emoji: activeVibe?.emoji || '' }, user: { id: user.id, username: user.profile.username } }, newOwnerId);
         setConfirmation(null); 
         addToast(`${newOwnerUsername} is now the leader.`, 'success');
-        if (!notificationSuccess) {
-            addToast('Could not send ownership notification.', 'warning');
-        }
     } catch (e) { console.error("Error transferring ownership:", e); addToast("Could not transfer ownership.", "error"); }
   }, [activeVibe, handleSendMessage, createNotification, addToast, user]);
   
@@ -549,6 +550,21 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
       if (data.success) {
         addToast(`Vouch submitted! +${data.points} 🍪 awarded`, "success");
         setVouchingSession(null);
+
+        // --- ADD THIS FIX ---
+        // This updates the app's central user state via a prop from App.tsx
+        // This will cause ProfilePage to re-render with the correct score.
+        onProfileUpdate({
+          ...user.profile,
+          cookieScore: user.profile.cookieScore + data.points,
+          // We can also optimistically update the skill score
+          skillScores: {
+            ...user.profile.skillScores,
+            [skill]: (user.profile.skillScores[skill] || 0) + data.points
+          }
+        });
+        // --- END OF FIX ---
+
       } else {
         addToast(data.error || "Could not submit vouch.", "error");
       }
@@ -556,7 +572,7 @@ const MainApp: React.FC<MainAppProps> = ({ user, onLogout, onProfileUpdate, them
       console.error("Error vouching:", e);
       addToast("An unexpected error occurred while vouching.", "error");
     }
-  }, [addToast, user.id, vouchingSession]);
+  }, [addToast, user.id, vouchingSession, user, onProfileUpdate]);
   
   // --- PROFILE & UI HANDLERS ---
   const handleOpenProfile = useCallback(async (username: string) => { addToast(`Viewing profile for ${username} is not yet implemented.`, 'info'); }, [addToast]);
